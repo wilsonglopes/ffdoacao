@@ -1,0 +1,4 @@
+"dependencies": {
+  "mercadopago": "^1.5.17",
+  "stripe": "^14.0.0"
+}
