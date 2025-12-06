@@ -84,14 +84,13 @@
                 </form>
             </div>
         </div>
-
         <div class="text-center mt-6 text-stone-500 text-xs">
             <p>Ambiente Seguro • Processado por MercadoPago e Stripe</p>
         </div>
     </main>
 
     <script>
-        // --- CHAVES DE API ---
+        // CONFIGURAÇÃO DAS CHAVES (Mantidas corretas)
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -202,7 +201,6 @@
             const data = await response.json();
             
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
-            console.log("ID OK:", data.preferenceId);
 
             const bricksBuilder = mpInstance.bricks();
             
@@ -217,11 +215,10 @@
                 },
                 customization: {
                     paymentMethods: {
-                        bankTransfer: "all", // Inclui Pix
-                        creditCard: "all",   // Crédito
-                        debitCard: "all",    // Débito
-                        // "ticket" removido (Boleto)
-                        // "pix" removido (Causava erro)
+                        // AQUI ESTÁ A CORREÇÃO: Usamos bankTransfer e removemos "pix" e "ticket"
+                        bankTransfer: "all", 
+                        creditCard: "all",
+                        debitCard: "all",
                     },
                     visual: { style: { theme: 'bootstrap' } }
                 },
@@ -235,7 +232,6 @@
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
-                    // Simplesmente libera o fluxo para abrir a próxima tela (ex: QR Code)
                     onSubmit: () => { 
                         return new Promise((resolve) => resolve()); 
                     },
@@ -273,4 +269,3 @@
     </script>
 </body>
 </html>
-
