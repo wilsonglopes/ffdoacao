@@ -2,10 +2,11 @@ const { MercadoPagoConfig, Payment } = require("mercadopago");
 
 exports.handler = async (event) => {
   try {
-    const accessToken = process.env.MP_ACCESS_TOKEN;
-    const client = new MercadoPagoConfig({ accessToken });
-    const payment = new Payment(client);
+    const client = new MercadoPagoConfig({
+      accessToken: process.env.MP_ACCESS_TOKEN
+    });
 
+    const payment = new Payment(client);
     const body = JSON.parse(event.body);
 
     const result = await payment.create({
