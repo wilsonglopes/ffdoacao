@@ -1,57 +1,57 @@
-const { MercadoPagoConfig, Preference } = require("mercadopago");
+const { MercadoPagoConfig, Preference } = require('mercadopago');
 
-exports.handler = async function (event) {
+exports.handler = async function(event, context) {
+  console.log("Iniciando função de doação...");
+
+  // 1. Segurança: Verifica se a chave existe no Netlify
+  if (!process.env.MP_ACCESS_TOKEN) {
+    console.error("ERRO: MP_ACCESS_TOKEN não configurado.");
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Erro de configuração no servidor (Token ausente)." }),
+    };
+  }
+
+  // 2. Configura Mercado Pago
+  const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
+
   try {
-    // 1 - Token está correto (vem do Netlify)
-    const accessToken = process.env.MP_ACCESS_TOKEN;
+    const payload = JSON.parse(event.body || '{}');
+    const amount = parseFloat(payload.amount);
 
-    if (!accessToken) {
-      throw new Error("MP_ACCESS_TOKEN não configurado no Netlify.");
+    if (!amount || amount < 1) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Valor inválido." }) };
     }
 
-    // 2 - Criar cliente usando a V2 (correto)
-    const client = new MercadoPagoConfig({
-      accessToken,
-    });
-
+    // 3. Cria a Preferência
     const preference = new Preference(client);
-
-    const body = JSON.parse(event.body || "{}");
-    const amount = parseFloat(body.amount) || 10;
-
-    // 3 - Criar preferência no padrão V2
     const result = await preference.create({
       body: {
         items: [
           {
-            id: "doacao-feltro-facil",
-            title: "Doação Feltro Fácil",
+            id: 'doacao-unica',
+            title: 'Doação Feltro Fácil',
             quantity: 1,
             unit_price: amount,
+            currency_id: 'BRL',
           },
         ],
-      },
+      }
     });
+
+    console.log("Preferência criada com sucesso:", result.id);
 
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({
-        preferenceId: result.id,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferenceId: result.id }),
     };
-  } catch (err) {
-    console.error("ERRO MP:", err);
+
+  } catch (error) {
+    console.error("Erro fatal no Mercado Pago:", error);
     return {
-      statusCode: 502,
-      body: JSON.stringify({
-        errorType: err.name,
-        errorMessage: err.message,
-        trace: err.stack,
-      }),
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
