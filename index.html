@@ -91,7 +91,10 @@
     </main>
 
     <script>
-        // --- CHAVES DE API ---
+        // --- TRAVA DE SEGURANÇA: ISSO VAI PROVAR SE ATUALIZOU OU NÃO ---
+        alert("VERSÃO NOVA CARREGADA! SE VC NÃO VIU ISSO, O SITE NÃO ATUALIZOU.");
+        // ----------------------------------------------------------------
+
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -184,41 +187,31 @@
             container.classList.remove('hidden');
             container.innerHTML = ''; 
             
-            // 1. Backend: Cria a preferência de venda
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ amount: currentAmount })
             });
 
-            if (!response.ok) {
-                let errorMsg = `Erro do servidor (${response.status})`;
-                try {
-                     const errData = await response.json();
-                     if(errData.error) errorMsg = errData.error;
-                } catch(e) {}
-                throw new Error(errorMsg);
-            }
-
+            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
             const data = await response.json();
             
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
-            console.log("Preference ID OK:", data.preferenceId);
+            
+            console.log("ID OK:", data.preferenceId);
 
-            // 2. Brick: Carrega o botão na tela
             const bricksBuilder = mpInstance.bricks();
             
             const settings = {
                 initialization: {
-                    amount: currentAmount,
+                    // REMOVIDO: amount (Causa conflito com preferenceId)
                     preferenceId: data.preferenceId,
                 },
-                // --- AQUI ESTÁ A CORREÇÃO QUE FALTAVA ---
+                // INSERIDO: O bloco que o erro pedia
                 mercadoPago: {
                     publicKey: MP_PUBLIC_KEY,
                     locale: 'pt-BR'
                 },
-                // ----------------------------------------
                 customization: {
                     paymentMethods: {
                         ticket: "all",
@@ -234,7 +227,7 @@
                     },
                     onError: (error) => {
                         console.error("Erro Brick:", error);
-                        document.getElementById('error-message').innerText = "Erro ao carregar o pagamento.";
+                        document.getElementById('error-message').innerText = "Erro ao carregar Mercado Pago.";
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
