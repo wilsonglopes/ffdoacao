@@ -1,57 +1,37 @@
-// netlify/functions/create-mp-donation.js
-const mercadopago = require("mercadopago");
+const { MercadoPagoConfig, Preference } = require("mercadopago");
 
-exports.handler = async function(event, context) {
-  // Permitir preflight
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-      body: ""
-    };
-  }
-
-  if (!process.env.MP_ACCESS_TOKEN) {
-    console.error("MP_ACCESS_TOKEN não definido");
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Configuração de servidor ausente (Token)." }),
-    };
-  }
-
-  mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
-
+exports.handler = async function (event) {
   try {
-    const payload = JSON.parse(event.body || "{}");
-    const amount = parseFloat(payload.amount) || 10;
+    // 1 - Token está correto (vem do Netlify)
+    const accessToken = process.env.MP_ACCESS_TOKEN;
 
-    const preference = {
-      items: [
-        {
-          id: "doacao-feltro-facil",
-          title: "Doação Feltro Fácil",
-          quantity: 1,
-          unit_price: amount,
-          currency_id: "BRL",
-        },
-      ],
-      // opcional: back_urls se quiser
-      // back_urls: {...}, auto_return: 'approved'
-    };
-
-    const response = await mercadopago.preferences.create(preference);
-
-    // response.body.id normalmente contém o id
-    const preferenceId = response && response.body && (response.body.id || response.body.preference_id) ? (response.body.id || response.body.preference_id) : null;
-
-    if (!preferenceId) {
-      console.error("Resposta inesperada do MP:", response);
-      throw new Error("Não foi possível gerar preferenceId");
+    if (!accessToken) {
+      throw new Error("MP_ACCESS_TOKEN não configurado no Netlify.");
     }
+
+    // 2 - Criar cliente usando a V2 (correto)
+    const client = new MercadoPagoConfig({
+      accessToken,
+    });
+
+    const preference = new Preference(client);
+
+    const body = JSON.parse(event.body || "{}");
+    const amount = parseFloat(body.amount) || 10;
+
+    // 3 - Criar preferência no padrão V2
+    const result = await preference.create({
+      body: {
+        items: [
+          {
+            id: "doacao-feltro-facil",
+            title: "Doação Feltro Fácil",
+            quantity: 1,
+            unit_price: amount,
+          },
+        ],
+      },
+    });
 
     return {
       statusCode: 200,
@@ -59,15 +39,19 @@ exports.handler = async function(event, context) {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ preferenceId }),
+      body: JSON.stringify({
+        preferenceId: result.id,
+      }),
     };
-
   } catch (err) {
-    console.error("Erro ao criar preferência:", err);
+    console.error("ERRO MP:", err);
     return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: err.message || "Erro interno" }),
+      statusCode: 502,
+      body: JSON.stringify({
+        errorType: err.name,
+        errorMessage: err.message,
+        trace: err.stack,
+      }),
     };
   }
 };
