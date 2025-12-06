@@ -229,7 +229,10 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const bricksBuilder = mpInstance.bricks();
       paymentBrickController = await bricksBuilder.create("payment", "mercadopago-brick-container", {
-        initialization: { preferenceId: data.preferenceId, amount: currentAmount },
+       initialization: {
+    preferenceId: data.preferenceId
+},
+ 
         mercadoPago: { publicKey: MP_PUBLIC_KEY, locale: "pt-BR" },
         customization: { paymentMethods: { ticket: "all", bankTransfer: "all", creditCard: "all", debitCard: "all" } },
         callbacks: {
@@ -277,3 +280,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
