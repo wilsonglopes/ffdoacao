@@ -4,7 +4,7 @@
   "description": "Sistema de doação via MercadoPago e Stripe",
   "main": "functions/create-mp-donation.js",
   "dependencies": {
-    "mercadopago": "^1.5.17",
+    "mercadopago": "^2.0.0",
     "stripe": "^14.0.0"
   },
   "scripts": {
