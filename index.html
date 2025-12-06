@@ -24,7 +24,7 @@
 
 <header class="bg-white/90 backdrop-blur-lg shadow-sm sticky top-0 z-50">
   <nav class="container mx-auto px-4 py-4 flex justify-center items-center">
-    <img src="logo-f.png" alt="Logo Feltro Fácil" class="h-12 w-auto" onerror="this.style.display='none'">
+    <img src="logo-f.png" class="h-12 w-auto">
   </nav>
 </header>
 
@@ -36,23 +36,22 @@
       <p class="text-stone-600 mt-2">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
     </div>
 
-    <!-- Escolha do valor -->
     <div class="mb-8">
       <label class="block text-sm font-semibold text-stone-700 mb-3">Escolha o valor da doação:</label>
 
       <div class="grid grid-cols-3 gap-4 mb-4">
         <button type="button" data-amount="10"
-          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">
+          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600">
           R$ 10
         </button>
 
         <button type="button" data-amount="30"
-          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">
+          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600">
           R$ 30
         </button>
 
         <button type="button" data-amount="50"
-          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">
+          class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600">
           R$ 50
         </button>
       </div>
@@ -61,11 +60,10 @@
         <span class="absolute left-4 top-3.5 text-stone-500 font-semibold">R$</span>
         <input id="custom-amount" type="number" min="5"
           placeholder="Outro valor (mínimo R$ 5)"
-          class="w-full pl-12 pr-4 py-3 border-2 border-stone-200 rounded-lg focus:border-feltro-purple">
+          class="w-full pl-12 pr-4 py-3 border-2 border-stone-200 rounded-lg">
       </div>
     </div>
 
-    <!-- Escolha do método -->
     <div class="mb-8">
       <label class="block text-sm font-semibold text-stone-700 mb-3">Você está no Brasil ou no Exterior?</label>
 
@@ -89,7 +87,6 @@
       Continuar para Pagamento
     </button>
 
-    <!-- Container dos Bricks -->
     <div id="payment-container" class="mt-8 hidden">
       <div id="loading-spinner" class="flex justify-center py-8 hidden">
         <div class="loader rounded-full border-4 border-gray-200 h-12 w-12"></div>
@@ -97,7 +94,6 @@
 
       <div id="mercadopago-brick-container"></div>
 
-      <!-- Stripe -->
       <form id="stripe-payment-form" class="hidden mt-4">
         <div id="stripe-payment-element"></div>
         <button id="stripe-submit"
@@ -115,190 +111,126 @@
 </main>
 
 <script>
-/* --------------------------- CONFIG --------------------------- */
 const MP_PUBLIC_KEY = "APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6";
 const STRIPE_PUBLIC_KEY = "pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU";
 
 let currentAmount = 0;
 let currentMethod = "mp";
-let mpInstance = null;
-let stripeInstance = null;
-let paymentBrickController = null;
+let mpInstance;
+let stripeInstance;
+let paymentBrickController;
 
-/* --------------------------- UTIL --------------------------- */
-const showError = (msg) => {
-  const el = document.getElementById("error-message");
-  el.textContent = msg;
-  el.classList.remove("hidden");
-};
-const hideError = () => {
-  const el = document.getElementById("error-message");
-  el.classList.add("hidden");
-};
-
-/* ----------------------- INICIALIZAÇÃO ----------------------- */
 document.addEventListener("DOMContentLoaded", () => {
 
-  try {
-    mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: "pt-BR" });
-    stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
-  } catch (err) {
-    console.error("Erro inicializando SDKs:", err);
-  }
+  mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: "pt-BR" });
+  stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
 
-  const startBtn = document.getElementById("start-checkout-btn");
-  const amountButtons = document.querySelectorAll(".amount-btn");
-
-  /* Seleção de valor */
-  amountButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      currentAmount = Number(btn.dataset.amount);
-      amountButtons.forEach(b => b.classList.remove("selected-amount"));
-      btn.classList.add("selected-amount");
+  const buttons = document.querySelectorAll(".amount-btn");
+  buttons.forEach(b => {
+    b.onclick = () => {
+      currentAmount = Number(b.dataset.amount);
+      buttons.forEach(x => x.classList.remove("selected-amount"));
+      b.classList.add("selected-amount");
       document.getElementById("custom-amount").value = "";
-      resetCheckout();
-    });
+    };
   });
 
-  document.getElementById("custom-amount").addEventListener("input", (e) => {
+  document.getElementById("custom-amount").oninput = (e) => {
     currentAmount = Number(e.target.value);
-    amountButtons.forEach(b => b.classList.remove("selected-amount"));
-    resetCheckout();
-  });
+    buttons.forEach(x => x.classList.remove("selected-amount"));
+  };
 
-  /* Método */
-  document.getElementById("btn-mp").addEventListener("click", () => {
+  document.getElementById("btn-mp").onclick = () => {
     currentMethod = "mp";
-    toggleMethod();
-  });
+    document.getElementById("btn-mp").classList.add("selected-amount");
+    document.getElementById("btn-stripe").classList.remove("selected-amount");
+  };
 
-  document.getElementById("btn-stripe").addEventListener("click", () => {
+  document.getElementById("btn-stripe").onclick = () => {
     currentMethod = "stripe";
-    toggleMethod();
-  });
+    document.getElementById("btn-stripe").classList.add("selected-amount");
+    document.getElementById("btn-mp").classList.remove("selected-amount");
+  };
 
-  function toggleMethod() {
-    document.getElementById("btn-mp").classList.toggle("selected-amount", currentMethod === "mp");
-    document.getElementById("btn-stripe").classList.toggle("selected-amount", currentMethod === "stripe");
-    resetCheckout();
-  }
+  document.getElementById("start-checkout-btn").onclick = () => {
+    iniciarCheckout();
+  };
 
-  /* Iniciar Checkout */
-  startBtn.addEventListener("click", () => {
-    initiateCheckout().catch((err) => {
-      console.error(err);
-      showError(err.message || "Erro inesperado.");
-    });
-  });
-
-  function resetCheckout() {
-    hideError();
-    document.getElementById("payment-container").classList.add("hidden");
-    document.getElementById("loading-spinner").classList.add("hidden");
-    document.getElementById("start-checkout-btn").classList.remove("hidden");
-
-    if (paymentBrickController && paymentBrickController.unmount) {
-      paymentBrickController.unmount();
-      paymentBrickController = null;
-    }
-
-    document.getElementById("mercadopago-brick-container").innerHTML = "";
-    document.getElementById("stripe-payment-form").classList.add("hidden");
-  }
-
-  /* --------------------- INICIAR CHECKOUT --------------------- */
-  async function initiateCheckout() {
-    hideError();
-
-    if (!currentAmount || currentAmount < 5) {
-      showError("Escolha um valor mínimo de R$ 5,00");
-      return;
-    }
-
+  async function iniciarCheckout() {
     document.getElementById("start-checkout-btn").classList.add("hidden");
     document.getElementById("payment-container").classList.remove("hidden");
     document.getElementById("loading-spinner").classList.remove("hidden");
 
     if (currentMethod === "mp") {
       await renderMercadoPago();
-    } else {
-      await renderStripe();
     }
   }
 
-  /* --------------------- MERCADO PAGO ------------------------ */
   async function renderMercadoPago() {
-  const bricksBuilder = mpInstance.bricks();
+    const bricksBuilder = mpInstance.bricks();
 
-  paymentBrickController = await bricksBuilder.create(
-    "payment",
-    "mercadopago-brick-container",
-    {
-      initialization: {
-        amount: currentAmount
-      },
-      mercadoPago: {
-        publicKey: MP_PUBLIC_KEY,
-        locale: "pt-BR"
-      },
-      customization: {
-        paymentMethods: {
-          ticket: "all",
-          bankTransfer: "all",
-          creditCard: "all",
-          debitCard: "all"
-        }
-      },
-      callbacks: {
-        onReady: () => {
-          console.log("Brick carregado");
-          document.getElementById("loading-spinner").classList.add("hidden");
+    paymentBrickController = await bricksBuilder.create(
+      "payment",
+      "mercadopago-brick-container",
+      {
+        initialization: {
+          amount: currentAmount
         },
-        onSubmit: (formData) => {
-          console.log("FORM DATA:", formData);
-          alert("Pagamento iniciado!");
-          return Promise.resolve();
+        mercadoPago: {
+          publicKey: MP_PUBLIC_KEY,
+          locale: "pt-BR"
         },
-        onError: (error) => {
-          console.error("Erro Brick:", error);
-          showError(error.message || "Erro no Mercado Pago.");
+        customization: {
+          paymentMethods: {
+            ticket: "all",
+            bankTransfer: "all",
+            creditCard: "all",
+            debitCard: "all"
+          }
+        },
+        callbacks: {
+          onReady: () => {
+            console.log("Brick carregado");
+            document.getElementById("loading-spinner").classList.add("hidden");
+          },
+          onSubmit: async (formData) => {
+            try {
+              const resp = await fetch("/.netlify/functions/criar_pagamento", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  amount: currentAmount,
+                  payment_method_id: formData.paymentMethodId,
+                  email: formData.formData.payer.email
+                })
+              });
+
+              const data = await resp.json();
+
+              const qr = data.point_of_interaction.transaction_data.qr_code_base64;
+              const pix = data.point_of_interaction.transaction_data.qr_code;
+
+              document.body.innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                  <h2>Escaneie o QR Code para pagar</h2>
+                  <img src="data:image/png;base64,${qr}" style="width:300px;margin:20px auto;">
+                  <p>Código copia e cola:</p>
+                  <textarea style="width:100%;height:80px">${pix}</textarea>
+                </div>
+              `;
+
+              return Promise.resolve();
+
+            } catch (e) {
+              console.log("ERRO SUBMIT:", e);
+            }
+          },
+          onError: (error) => {
+            console.error("Erro Brick:", error);
+          }
         }
       }
-    }
-  );
-}
-
-
-  /* ----------------------- STRIPE ---------------------------- */
-  async function renderStripe() {
-    const resp = await fetch("/.netlify/functions/create-stripe-donation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: currentAmount })
-    });
-
-    const data = await resp.json();
-    const clientSecret = data.clientSecret;
-
-    if (!clientSecret) throw new Error("Client Secret ausente");
-
-    document.getElementById("loading-spinner").classList.add("hidden");
-    document.getElementById("stripe-payment-form").classList.remove("hidden");
-
-    const elements = stripeInstance.elements({ clientSecret });
-    const element = elements.create("payment");
-    element.mount("#stripe-payment-element");
-
-    document.getElementById("stripe-payment-form").onsubmit = async (e) => {
-      e.preventDefault();
-      const res = await stripeInstance.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + "/obrigado.html"
-        }
-      });
-      if (res.error) showError(res.error.message);
-    };
+    );
   }
 
 });
@@ -306,4 +238,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
-
