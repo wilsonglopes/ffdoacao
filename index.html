@@ -1,136 +1,145 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Doação</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://sdk.mercadopago.com/js/v2"></script>
-
-<style>
-body { font-family: Inter, sans-serif; background:#FEF2F2; }
-.selected { background:#800080 !important; color:white !important; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doação - Feltro Fácil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
+<body class="bg-gray-50 font-sans text-gray-800 flex items-center justify-center min-h-screen p-4">
 
-<body>
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-gray-200">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-purple-800">Apoie a Feltro Fácil</h1>
+            <p class="text-gray-500 text-sm mt-1">Sua contribuição mantém nosso trabalho.</p>
+        </div>
 
-<div class="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
+        <div class="mb-6">
+            <label class="block text-sm font-semibold mb-2">Escolha o valor:</label>
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <button onclick="selectAmount(10)" class="btn-amount py-2 border rounded hover:border-purple-600 hover:text-purple-600 transition">R$ 10</button>
+                <button onclick="selectAmount(30)" class="btn-amount py-2 border rounded hover:border-purple-600 hover:text-purple-600 transition">R$ 30</button>
+                <button onclick="selectAmount(50)" class="btn-amount py-2 border rounded hover:border-purple-600 hover:text-purple-600 transition">R$ 50</button>
+            </div>
+            <input type="number" id="custom-amount" placeholder="Outro valor (R$)" class="w-full p-3 border rounded focus:outline-none focus:border-purple-500" oninput="manualAmount()">
+        </div>
 
-<h1 class="text-2xl font-bold text-center mb-6">Faça sua contribuição</h1>
+        <div id="error-msg" class="hidden bg-red-100 text-red-700 p-3 rounded text-sm mb-4 text-center"></div>
 
-<div class="grid grid-cols-3 gap-4 mb-4">
-  <button class="vbtn p-3 border rounded" data-v="10">R$ 10</button>
-  <button class="vbtn p-3 border rounded" data-v="30">R$ 30</button>
-  <button class="vbtn p-3 border rounded" data-v="50">R$ 50</button>
-</div>
+        <button id="btn-continue" onclick="startCheckout()" class="w-full bg-purple-700 text-white font-bold py-3 rounded hover:bg-purple-800 transition">
+            Continuar para Pagamento
+        </button>
 
-<input id="custom" type="number" class="border w-full p-3 rounded mb-4" placeholder="Outro valor">
+        <div id="wallet_container" class="mt-4"></div>
+        <div id="loading" class="hidden text-center py-4 text-purple-700 font-semibold">Carregando pagamento...</div>
+    </div>
 
-<button id="go" class="w-full bg-purple-700 text-white p-4 rounded font-bold">
-  Continuar
-</button>
+    <script>
+        // CONFIGURAÇÃO
+        const PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; // Sua Public Key
+        
+        let amount = 0;
+        const mp = new MercadoPago(PUBLIC_KEY, { locale: 'pt-BR' });
+        let brickController = null;
 
-<div id="erro" class="hidden text-red-600 mt-4 text-center"></div>
-
-<div id="box" class="hidden mt-6">
-  <div id="mp-brick"></div>
-</div>
-
-</div>
-
-<script>
-const mp = new MercadoPago("APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6", { locale:"pt-BR" });
-
-let amount = 0;
-
-document.querySelectorAll(".vbtn").forEach(btn=>{
-  btn.onclick = ()=>{
-    amount = Number(btn.dataset.v);
-    document.querySelectorAll(".vbtn").forEach(b=>b.classList.remove("selected"));
-    btn.classList.add("selected");
-    document.getElementById("custom").value="";
-  };
-});
-
-document.getElementById("custom").oninput = e=>{
-  amount = Number(e.target.value);
-  document.querySelectorAll(".vbtn").forEach(b=>b.classList.remove("selected"));
-};
-
-document.getElementById("go").onclick = iniciar;
-
-async function iniciar() {
-  if (amount < 5) {
-    erro("Valor mínimo é R$ 5");
-    return;
-  }
-
-  const r = await fetch("/.netlify/functions/create-mp-preference", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ amount })
-  });
-
-  const j = await r.json();
-
-  if (!j.preferenceId) {
-    erro("Falha ao criar preferência");
-    return;
-  }
-
-  mostrarBrick(j.preferenceId);
-}
-
-function erro(m) {
-  const e = document.getElementById("erro");
-  e.textContent = m;
-  e.classList.remove("hidden");
-}
-
-async function mostrarBrick(preferenceId) {
-  document.getElementById("box").classList.remove("hidden");
-
-  const bricks = mp.bricks();
-
-  await bricks.create("payment", "mp-brick", {
-    initialization:{
-      preferenceId
-    },
-    callbacks:{
-      onSubmit: async ({ formData }) => {
-
-        const r = await fetch("/.netlify/functions/criar_pagamento", {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body:JSON.stringify({
-            amount,
-            payment_method_id: formData.payment_method_id,
-            email: formData.payer.email
-          })
-        });
-
-        const p = await r.json();
-
-        const info = p.point_of_interaction?.transaction_data;
-        if (!info) {
-          alert("Erro ao gerar PIX");
-          return;
+        function selectAmount(val) {
+            amount = val;
+            document.getElementById('custom-amount').value = '';
+            highlightButtons(val);
+            resetBrick();
         }
 
-        document.body.innerHTML = `
-          <div style="padding:40px;text-align:center;">
-            <h2>Escaneie o QR Code</h2>
-            <img src="data:image/png;base64,${info.qr_code_base64}" style="width:300px;margin:auto;">
-            <p style="margin-top:20px;">${info.qr_code}</p>
-          </div>
-        `;
-      }
-    }
-  });
-}
-</script>
+        function manualAmount() {
+            amount = parseFloat(document.getElementById('custom-amount').value);
+            highlightButtons(0); // Remove destaque dos botões
+            resetBrick();
+        }
 
+        function highlightButtons(val) {
+            document.querySelectorAll('.btn-amount').forEach(btn => {
+                if (btn.innerText.includes(val) && val !== 0) {
+                    btn.classList.add('bg-purple-50', 'border-purple-600', 'text-purple-700');
+                } else {
+                    btn.classList.remove('bg-purple-50', 'border-purple-600', 'text-purple-700');
+                }
+            });
+        }
+
+        function resetBrick() {
+            const container = document.getElementById('wallet_container');
+            container.innerHTML = ''; // Limpa o botão anterior
+            document.getElementById('btn-continue').classList.remove('hidden');
+            if (brickController) brickController.unmount();
+        }
+
+        async function startCheckout() {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.classList.add('hidden');
+
+            if (!amount || amount < 1) {
+                errorDiv.innerText = "Por favor, selecione um valor válido.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('btn-continue').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+
+            try {
+                // 1. Pede o ID ao Backend
+                const response = await fetch('/.netlify/functions/create-mp-donation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amount })
+                });
+
+                if (!response.ok) throw new Error("Erro de comunicação com o servidor.");
+                
+                const data = await response.json();
+                if (!data.preferenceId) throw new Error("ID de pagamento não gerado.");
+
+                console.log("ID Recebido:", data.preferenceId);
+
+                // 2. Renderiza o Brick (COM A CORREÇÃO DE CREDENCIAIS)
+                const bricksBuilder = mp.bricks();
+                
+                document.getElementById('loading').classList.add('hidden');
+
+                brickController = await bricksBuilder.create("payment", "wallet_container", {
+                    initialization: {
+                        amount: amount,
+                        preferenceId: data.preferenceId,
+                    },
+                    // AQUI ESTÁ A CORREÇÃO CRÍTICA QUE FALTAVA ANTES:
+                    mercadoPago: {
+                        publicKey: PUBLIC_KEY,
+                        locale: 'pt-BR' 
+                    },
+                    customization: {
+                        visual: { style: { theme: 'bootstrap' } },
+                        paymentMethods: {
+                            ticket: "all",
+                            bankTransfer: "all",
+                            creditCard: "all",
+                            debitCard: "all",
+                        }
+                    },
+                    callbacks: {
+                        onReady: () => {},
+                        onSubmit: () => { return new Promise((resolve) => resolve()); },
+                        onError: (error) => { console.error(error); }
+                    },
+                });
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('btn-continue').classList.remove('hidden');
+                errorDiv.innerText = "Erro ao iniciar pagamento. Tente novamente.";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+    </script>
 </body>
 </html>
