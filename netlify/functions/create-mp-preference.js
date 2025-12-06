@@ -1,5 +1,3 @@
-
-
 const mercadopago = require('mercadopago');
 
 exports.handler = async function(event, context) {
@@ -7,11 +5,17 @@ exports.handler = async function(event, context) {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // Configura com a chave de ACESSO (Access Token) que estará nas variáveis de ambiente
+  // Configura com a chave de ACESSO (Access Token) das variáveis de ambiente
   mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
 
   try {
     const { amount } = JSON.parse(event.body);
+
+    // --- CONFIGURAÇÃO DA URL ---
+    // O Netlify preenche 'process.env.URL' automaticamente quando o site está no ar.
+    // Se estiver testando localmente, ele usa localhost.
+    // Se preferir, você pode apagar isso e colocar sua URL fixa: const baseUrl = "https://seu-site.netlify.app";
+    const baseUrl = process.env.URL || "http://localhost:8888";
 
     const preference = {
       items: [
@@ -24,12 +28,14 @@ exports.handler = async function(event, context) {
       ],
       payment_methods: {
         excluded_payment_types: [],
-        installments: 1 // Doação geralmente é à vista, mas pode mudar para 12 se quiser
+        installments: 1
       },
+      // --- AQUI ESTÁ A ALTERAÇÃO ---
+      // Redireciona para obrigado.html levando o valor (amount) na URL
       back_urls: {
-        success: "https://feltrofacil.com.br/obrigado", // Crie esta página no seu site WordPress depois
-        failure: "https://feltrofacil.com.br/erro",
-        pending: "https://feltrofacil.com.br/pendente"
+        success: `${baseUrl}/obrigado.html?amount=${amount}`,
+        failure: `${baseUrl}/index.html`,
+        pending: `${baseUrl}/index.html` // Pendente geralmente volta para a home ou uma tela de aviso
       },
       auto_return: "approved",
       statement_descriptor: "FELTROFACIL"
