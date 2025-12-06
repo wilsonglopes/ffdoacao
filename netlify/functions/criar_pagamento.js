@@ -13,9 +13,7 @@ exports.handler = async (event) => {
         transaction_amount: body.amount,
         description: "Doação Feltro Fácil",
         payment_method_id: body.payment_method_id,
-        payer: {
-          email: body.email
-        }
+        payer: { email: body.email }
       }
     });
 
@@ -25,7 +23,6 @@ exports.handler = async (event) => {
     };
 
   } catch (e) {
-    console.log("ERRO PIX:", e);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: e.message })
