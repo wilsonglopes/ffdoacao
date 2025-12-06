@@ -1,168 +1,131 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apoie a Feltro Fácil</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doação</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://sdk.mercadopago.com/js/v2"></script>
-  <script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 
-  <style>
-    body { font-family: Inter, sans-serif; background:#FEF2F2; }
-    .selected-amount { background:#800080 !important; color:#fff !important; border-color:#800080 !important; }
-    .bg-feltro-purple { background:#800080; }
-    .loader { border-top-color:#800080; animation:spin 1.2s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-  </style>
+<style>
+body { font-family: Inter, sans-serif; background:#FEF2F2; }
+.selected { background:#800080 !important; color:white !important; }
+</style>
 </head>
 
 <body>
 
-<header class="bg-white shadow-sm p-4 flex justify-center">
-  <img src="logo-f.png" class="h-12">
-</header>
+<div class="max-w-xl mx-auto mt-10 bg-white p-6 shadow rounded">
 
-<main class="container mx-auto max-w-2xl mt-10 p-6 bg-white rounded-xl shadow">
+<h1 class="text-2xl font-bold text-center mb-6">Faça sua contribuição</h1>
 
-  <h1 class="text-3xl font-bold text-center mb-2">Faça a sua contribuição</h1>
-  <p class="text-center text-gray-600 mb-8">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
+<div class="grid grid-cols-3 gap-4 mb-4">
+  <button class="vbtn p-3 border rounded" data-v="10">R$ 10</button>
+  <button class="vbtn p-3 border rounded" data-v="30">R$ 30</button>
+  <button class="vbtn p-3 border rounded" data-v="50">R$ 50</button>
+</div>
 
-  <label class="block font-semibold mb-2">Escolha o valor:</label>
+<input id="custom" type="number" class="border w-full p-3 rounded mb-4" placeholder="Outro valor">
 
-  <div class="grid grid-cols-3 gap-4 mb-4">
-    <button class="amount-btn border-2 py-3 rounded font-semibold" data-amount="10">R$ 10</button>
-    <button class="amount-btn border-2 py-3 rounded font-semibold" data-amount="30">R$ 30</button>
-    <button class="amount-btn border-2 py-3 rounded font-semibold" data-amount="50">R$ 50</button>
-  </div>
+<button id="go" class="w-full bg-purple-700 text-white p-4 rounded font-bold">
+  Continuar
+</button>
 
-  <div class="relative mb-8">
-    <span class="absolute left-4 top-3 text-gray-500">R$</span>
-    <input id="custom-amount" type="number" min="5"
-      class="border-2 w-full pl-10 p-3 rounded" placeholder="Outro valor (mínimo R$ 5)">
-  </div>
+<div id="erro" class="hidden text-red-600 mt-4 text-center"></div>
 
-  <label class="block font-semibold mb-3">Você está no Brasil ou exterior?</label>
+<div id="box" class="hidden mt-6">
+  <div id="mp-brick"></div>
+</div>
 
-  <div class="flex gap-4 mb-8">
-    <button id="btn-mp" class="flex-1 py-4 border-2 rounded font-semibold selected-amount">🇧🇷 Brasil</button>
-    <button id="btn-stripe" class="flex-1 py-4 border-2 rounded font-semibold text-gray-600">🌍 Internacional</button>
-  </div>
-
-  <div id="error-message" class="hidden bg-red-100 text-red-700 p-3 rounded mb-4 text-center text-sm"></div>
-
-  <button id="start-checkout-btn"
-    class="w-full bg-feltro-purple text-white font-bold py-4 rounded-lg">
-    Continuar para Pagamento
-  </button>
-
-  <div id="payment-container" class="hidden mt-6">
-    <div id="loading-spinner" class="hidden flex justify-center py-8">
-      <div class="loader border-4 border-gray-200 rounded-full h-12 w-12"></div>
-    </div>
-
-    <div id="mercadopago-brick-container"></div>
-  </div>
-
-</main>
+</div>
 
 <script>
-const MP_PUBLIC_KEY = "APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6";
-const mp = new MercadoPago(MP_PUBLIC_KEY, { locale:"pt-BR" });
+const mp = new MercadoPago("APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6", { locale:"pt-BR" });
 
-let currentAmount = 0;
-let paymentBrickController;
-let currentMethod = "mp";
+let amount = 0;
 
-document.querySelectorAll(".amount-btn").forEach(btn => {
-  btn.onclick = () => {
-    currentAmount = Number(btn.dataset.amount);
-    document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("selected-amount"));
-    btn.classList.add("selected-amount");
-    document.getElementById("custom-amount").value = "";
+document.querySelectorAll(".vbtn").forEach(btn=>{
+  btn.onclick = ()=>{
+    amount = Number(btn.dataset.v);
+    document.querySelectorAll(".vbtn").forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    document.getElementById("custom").value="";
   };
 });
 
-document.getElementById("custom-amount").oninput = e => {
-  currentAmount = Number(e.target.value);
-  document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("selected-amount"));
+document.getElementById("custom").oninput = e=>{
+  amount = Number(e.target.value);
+  document.querySelectorAll(".vbtn").forEach(b=>b.classList.remove("selected"));
 };
 
-document.getElementById("btn-mp").onclick = () => {
-  currentMethod = "mp";
-  btn-mp.classList.add("selected-amount");
-  btn-stripe.classList.remove("selected-amount");
-};
+document.getElementById("go").onclick = iniciar;
 
-document.getElementById("start-checkout-btn").onclick = () => iniciarCheckout();
-
-async function iniciarCheckout() {
-  if (!currentAmount || currentAmount < 5) {
-    mostrarErro("Escolha um valor mínimo de R$ 5");
+async function iniciar() {
+  if (amount < 5) {
+    erro("Valor mínimo é R$ 5");
     return;
   }
 
-  document.getElementById("start-checkout-btn").classList.add("hidden");
-  document.getElementById("payment-container").classList.remove("hidden");
-  document.getElementById("loading-spinner").classList.remove("hidden");
+  const r = await fetch("/.netlify/functions/create-mp-preference", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ amount })
+  });
 
-  await carregarBrickMP();
+  const j = await r.json();
+
+  if (!j.preferenceId) {
+    erro("Falha ao criar preferência");
+    return;
+  }
+
+  mostrarBrick(j.preferenceId);
 }
 
-function mostrarErro(msg) {
-  const el = document.getElementById("error-message");
-  el.textContent = msg;
-  el.classList.remove("hidden");
+function erro(m) {
+  const e = document.getElementById("erro");
+  e.textContent = m;
+  e.classList.remove("hidden");
 }
 
-async function carregarBrickMP() {
+async function mostrarBrick(preferenceId) {
+  document.getElementById("box").classList.remove("hidden");
+
   const bricks = mp.bricks();
 
-  paymentBrickController = await bricks.create("payment", "mercadopago-brick-container", {
-    initialization: {
-      amount: currentAmount
+  await bricks.create("payment", "mp-brick", {
+    initialization:{
+      preferenceId
     },
-    callbacks: {
-      onReady: () => {
-        document.getElementById("loading-spinner").classList.add("hidden");
-      },
+    callbacks:{
       onSubmit: async ({ formData }) => {
-        try {
-          const resp = await fetch("/.netlify/functions/criar_pagamento", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: currentAmount,
-              payment_method_id: formData.payment_method_id,
-              email: formData.payer.email
-            })
-          });
 
-          const data = await resp.json();
-          const info = data.point_of_interaction?.transaction_data;
+        const r = await fetch("/.netlify/functions/criar_pagamento", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify({
+            amount,
+            payment_method_id: formData.payment_method_id,
+            email: formData.payer.email
+          })
+        });
 
-          if (!info) {
-            alert("Erro: MP não retornou dados PIX.");
-            return;
-          }
+        const p = await r.json();
 
-          document.body.innerHTML = `
-            <div style="padding:40px;text-align:center;">
-              <h2>Escaneie o QR Code</h2>
-              <img src="data:image/png;base64,${info.qr_code_base64}" style="width:300px;margin:20px auto;">
-              <p>Código copia e cola:</p>
-              <textarea style="width:100%;height:90px">${info.qr_code}</textarea>
-            </div>
-          `;
-
-        } catch (err) {
-          console.log("ERRO SUBMIT:", err);
+        const info = p.point_of_interaction?.transaction_data;
+        if (!info) {
+          alert("Erro ao gerar PIX");
+          return;
         }
-      },
-      onError: err => {
-        console.log("Erro Brick:", err);
-        mostrarErro("Falha ao carregar o pagamento.");
+
+        document.body.innerHTML = `
+          <div style="padding:40px;text-align:center;">
+            <h2>Escaneie o QR Code</h2>
+            <img src="data:image/png;base64,${info.qr_code_base64}" style="width:300px;margin:auto;">
+            <p style="margin-top:20px;">${info.qr_code}</p>
+          </div>
+        `;
       }
     }
   });
