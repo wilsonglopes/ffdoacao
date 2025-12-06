@@ -1,8 +1,6 @@
 {
   "name": "doacao-feltro-facil",
   "version": "1.0.0",
-  "description": "Backend de Doacoes",
-  "main": "netlify/functions/create-mp-donation.js",
   "dependencies": {
     "mercadopago": "^2.0.8",
     "stripe": "^14.0.0",
