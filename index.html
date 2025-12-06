@@ -92,8 +92,9 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO
-        const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
+        // --- CHAVES DE API ---
+        // Atualizado com a sua Public Key nova:
+        const MP_PUBLIC_KEY = 'APP_USR-7a43b3a9-e898-47a3-a72d-3c35447bf3dc'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
         let currentAmount = 0;
@@ -191,7 +192,15 @@
                 body: JSON.stringify({ amount: currentAmount })
             });
 
-            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
+            if (!response.ok) {
+                let errorMsg = `Erro do servidor (${response.status})`;
+                try {
+                     const errData = await response.json();
+                     if(errData.error) errorMsg = errData.error;
+                } catch(e) {}
+                throw new Error(errorMsg);
+            }
+
             const data = await response.json();
             
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
@@ -201,11 +210,9 @@
             
             const settings = {
                 initialization: {
-                    // DEVOLVIDO: O valor (amount) que o erro novo pediu
                     amount: currentAmount, 
                     preferenceId: data.preferenceId,
                 },
-                // MANTIDO: O bloco de credenciais que o erro antigo pedia
                 mercadoPago: {
                     publicKey: MP_PUBLIC_KEY,
                     locale: 'pt-BR'
