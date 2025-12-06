@@ -89,7 +89,7 @@
     </main>
 
     <script>
-        // SUAS CHAVES (Mantidas conforme seu envio anterior)
+        // SUAS CHAVES
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
 
@@ -205,8 +205,8 @@
                 },
                 customization: {
                     paymentMethods: {
-                        bankTransfer: "all", // Inclui Pix
-                        pix: "all",
+                        // CORREÇÃO: "pix" removido pois causava erro. "bankTransfer" já inclui Pix.
+                        bankTransfer: "all", 
                         creditCard: "all",
                     },
                     visual: {
@@ -222,7 +222,13 @@
                         document.getElementById('error-message').innerText = "Erro no formulário de pagamento.";
                         document.getElementById('error-message').classList.remove('hidden');
                     },
-                    // REMOVIDO: onSubmit (O Brick gerencia o fluxo de Pix/QR Code automaticamente)
+                    // REINCLUÍDO: Necessário para liberar o fluxo de UI, mesmo que a preferência faça o resto
+                    onSubmit: ({ selectedPaymentMethod, formData }) => {
+                         return new Promise((resolve) => {
+                            // Simula processamento para a UI responder e mostrar a próxima tela (QR Code)
+                            setTimeout(() => resolve(), 500);
+                        });
+                    },
                 },
             };
             
