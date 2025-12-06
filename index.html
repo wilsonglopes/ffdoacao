@@ -228,62 +228,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* --------------------- MERCADO PAGO ------------------------ */
   async function renderMercadoPago() {
-    const resp = await fetch("/.netlify/functions/create-mp-donation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: currentAmount })
-    });
+  const bricksBuilder = mpInstance.bricks();
 
-    if (!resp.ok) {
-      throw new Error("Erro ao criar preferência (" + resp.status + ")");
-    }
-
-    const data = await resp.json();
-    const preferenceId = data.preferenceId;
-
-    if (!preferenceId) {
-      throw new Error("Preference ID não recebido");
-    }
-
-    const bricksBuilder = mpInstance.bricks();
-
-    paymentBrickController = await bricksBuilder.create(
-      "payment",
-      "mercadopago-brick-container",
-      {
-        initialization: {
-          preferenceId: preferenceId
+  paymentBrickController = await bricksBuilder.create(
+    "payment",
+    "mercadopago-brick-container",
+    {
+      initialization: {
+        amount: currentAmount
+      },
+      mercadoPago: {
+        publicKey: MP_PUBLIC_KEY,
+        locale: "pt-BR"
+      },
+      customization: {
+        paymentMethods: {
+          ticket: "all",
+          bankTransfer: "all",
+          creditCard: "all",
+          debitCard: "all"
+        }
+      },
+      callbacks: {
+        onReady: () => {
+          console.log("Brick carregado");
+          document.getElementById("loading-spinner").classList.add("hidden");
         },
-        mercadoPago: {
-          publicKey: MP_PUBLIC_KEY,
-          locale: "pt-BR"
+        onSubmit: (formData) => {
+          console.log("FORM DATA:", formData);
+          alert("Pagamento iniciado!");
+          return Promise.resolve();
         },
-        customization: {
-          paymentMethods: {
-            ticket: "all",
-            bankTransfer: "all",
-            creditCard: "all",
-            debitCard: "all"
-          }
-        },
-        callbacks: {
-          onReady: () => {
-            console.log("Brick carregado");
-            document.getElementById("loading-spinner").classList.add("hidden");
-          },
-          onSubmit: (formData) => {
-            console.log("onSubmit DATA:", formData);
-            alert("Pagamento iniciado! (onSubmit executado)");
-            return Promise.resolve();
-          },
-          onError: (error) => {
-            console.error("Erro Brick:", error);
-            showError("Erro no Mercado Pago.");
-          }
+        onError: (error) => {
+          console.error("Erro Brick:", error);
+          showError(error.message || "Erro no Mercado Pago.");
         }
       }
-    );
-  }
+    }
+  );
+}
+
 
   /* ----------------------- STRIPE ---------------------------- */
   async function renderStripe() {
@@ -322,3 +306,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
