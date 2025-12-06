@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obrigado! - Feltro Fácil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body { font-family: 'Quicksand', sans-serif; background-color: #FFF0F5; }
+        .text-brand-purple { color: #800080; }
+        .bg-brand-purple { background-color: #800080; }
+        .bg-brand-purple:hover { background-color: #6B21A8; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center">
+        
+        <div class="mb-6 flex justify-center">
+            <div class="rounded-full bg-green-100 p-4">
+                <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+        </div>
+
+        <img src="/images/logo.png" alt="Feltro Fácil" class="h-10 mx-auto mb-6 object-contain">
+
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Muito Obrigado!</h1>
+        <p class="text-gray-500 mb-8">Sua contribuição faz toda a diferença para continuarmos criando.</p>
+
+        <div class="bg-purple-50 rounded-xl p-6 mb-8 border border-purple-100">
+            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Valor doado</p>
+            <p id="donation-amount" class="text-4xl font-bold text-brand-purple mt-2">...</p>
+        </div>
+
+        <a href="https://feltrofacil.com.br" class="block w-full bg-brand-purple text-white font-bold py-4 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
+            Voltar para o Blog
+        </a>
+    </div>
+
+    <script>
+        // 1. Efeito de Confete ao carregar
+        window.addEventListener('load', () => {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#800080', '#FF1493', '#FFD700'] // Roxo, Rosa e Dourado
+            });
+        });
+
+        // 2. Pegar o valor da URL (ex: obrigado.html?amount=50)
+        const params = new URLSearchParams(window.location.search);
+        let amount = params.get('amount');
+
+        // Formatação de moeda
+        if (amount) {
+            // Se vier do Stripe ou MP, garantimos que seja número
+            amount = parseFloat(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('donation-amount').innerText = amount;
+        } else {
+            // Caso acesse sem parametro
+            document.getElementById('donation-amount').innerText = "R$ --,--";
+        }
+    </script>
+</body>
+</html>
