@@ -73,7 +73,7 @@
                     <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
                 </div>
                 
-                <div id="mercadopago-brick-container"></div>
+                <div id="mercadopago-brick-container" style="min-height: 200px;"></div>
                 
                 <form id="stripe-payment-form" class="hidden">
                     <div id="stripe-payment-element" class="mb-4"></div>
@@ -84,13 +84,14 @@
                 </form>
             </div>
         </div>
+
         <div class="text-center mt-6 text-stone-500 text-xs">
             <p>Ambiente Seguro • Processado por MercadoPago e Stripe</p>
         </div>
     </main>
 
     <script>
-        // --- CHAVES DE API ---
+        // CONFIGURAÇÃO DAS CHAVES
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -100,7 +101,6 @@
         let stripeInstance = null;
         let paymentBrickController = null;
 
-        // Inicializa SDKs
         try {
             if(window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
             if(window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
@@ -181,10 +181,16 @@
 
         async function renderMercadoPago() {
             const container = document.getElementById('mercadopago-brick-container');
-            container.classList.remove('hidden');
-            container.innerHTML = ''; 
             
-            // 1. Chama backend
+            // 1. FORÇAR A VISIBILIDADE ANTES DE TUDO
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+            
+            // 2. PEQUENO DELAY para o navegador "respirar" e calcular o tamanho da div
+            // Isso corrige o erro de "SVG attribute width"
+            await new Promise(resolve => setTimeout(resolve, 50)); 
+
+            // 3. Tenta chamar o Backend
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -202,9 +208,7 @@
 
             const data = await response.json();
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
-            console.log("ID OK:", data.preferenceId);
 
-            // 2. Renderiza Brick com configuração LIMPA
             const bricksBuilder = mpInstance.bricks();
             
             const settings = {
@@ -212,14 +216,13 @@
                     amount: currentAmount, 
                     preferenceId: data.preferenceId,
                 },
-                // REMOVIDO: O bloco 'mercadoPago' aqui estava causando o erro
+                // REMOVIDO "visual: { style: { theme: 'bootstrap' } }" pois causava conflito de CSS e erro de SVG
                 customization: {
                     paymentMethods: {
-                        bankTransfer: "all", // Pix
+                        bankTransfer: "all", 
                         creditCard: "all",
                         debitCard: "all",
                     },
-                    visual: { style: { theme: 'bootstrap' } }
                 },
                 callbacks: {
                     onReady: () => {
@@ -227,9 +230,11 @@
                     },
                     onError: (error) => {
                         console.error("Erro Brick:", error);
-                        document.getElementById('error-message').innerText = "Erro ao carregar formulário de pagamento.";
-                        document.getElementById('error-message').classList.remove('hidden');
-                        document.getElementById('loading-spinner').classList.add('hidden');
+                        // Não mostramos erro para o usuário se for apenas um erro interno de log
+                        if (!JSON.stringify(error).includes("width")) {
+                             document.getElementById('error-message').innerText = "Erro ao carregar formulário.";
+                             document.getElementById('error-message').classList.remove('hidden');
+                        }
                     },
                     onSubmit: () => { 
                         return new Promise((resolve) => resolve()); 
