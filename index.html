@@ -82,11 +82,13 @@
                 </form>
             </div>
         </div>
+        <div class="text-center mt-6 text-stone-500 text-xs">
+            <p>Ambiente Seguro • Processado por MercadoPago e Stripe</p>
+        </div>
     </main>
 
     <script>
-        // CONFIGURAÇÃO DAS CHAVES PÚBLICAS
-        // Coloque suas chaves aqui se ainda não colocou
+        // --- SUAS CHAVES CONFIGURADAS ---
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
 
@@ -97,7 +99,7 @@
         let stripeElements = null;
         let paymentBrickController = null;
 
-        // Inicializa SDKs com verificação de erro
+        // Inicializa SDKs
         try {
             if(window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
             if(window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
@@ -171,7 +173,7 @@
                 }
             } catch (error) {
                 console.error("Erro no checkout:", error);
-                errorDiv.innerHTML = `Erro ao iniciar pagamento: ${error.message}<br>Verifique se as chaves estão configuradas no Netlify.`;
+                errorDiv.innerHTML = `Erro ao iniciar pagamento.<br>Verifique se a função backend está na pasta correta 'netlify/functions'.`;
                 errorDiv.classList.remove('hidden');
                 document.getElementById('start-checkout-btn').classList.remove('hidden');
                 document.getElementById('payment-container').classList.add('hidden');
@@ -183,19 +185,16 @@
         async function renderMercadoPago() {
             document.getElementById('mercadopago-brick-container').classList.remove('hidden');
             
-            // O caminho aqui depende da configuração do netlify.toml
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ amount: currentAmount })
             });
 
-            if (!response.ok) {
-                throw new Error(`Erro do servidor (${response.status}). Verifique os logs do Netlify.`);
-            }
+            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
 
             const data = await response.json();
-            if (!data.preferenceId) throw new Error('O servidor não retornou um ID de pagamento.');
+            if (!data.preferenceId) throw new Error('Falha ao obter ID do pagamento.');
 
             const bricksBuilder = mpInstance.bricks();
             const settings = {
@@ -222,9 +221,7 @@
                 body: JSON.stringify({ amount: currentAmount })
             });
             
-            if (!response.ok) {
-                 throw new Error(`Erro do servidor (${response.status}). Verifique as chaves do Stripe.`);
-            }
+            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
 
             const { clientSecret } = await response.json();
             
@@ -235,10 +232,17 @@
 
             document.getElementById('stripe-payment-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // Lógica de loading do Stripe...
+                // Stripe lida com o redirect e loading automaticamente com confirmPayment
+                const { error } = await stripeInstance.confirmPayment({
+                    elements: stripeElements,
+                    confirmParams: { return_url: window.location.origin + "/obrigado.html" },
+                });
+                if (error) {
+                    document.getElementById('error-message').innerText = error.message;
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
             });
         }
     </script>
 </body>
 </html>
-
