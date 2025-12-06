@@ -1,35 +1,34 @@
 const { MercadoPagoConfig, Payment } = require("mercadopago");
 
-exports.handler = async function (event) {
+exports.handler = async (event) => {
   try {
     const accessToken = process.env.MP_ACCESS_TOKEN;
-    if (!accessToken) throw new Error("Token MP faltando");
-
     const client = new MercadoPagoConfig({ accessToken });
     const payment = new Payment(client);
 
-    const body = JSON.parse(event.body || "{}");
+    const body = JSON.parse(event.body);
 
     const result = await payment.create({
       body: {
-        transaction_amount: Number(body.transaction_amount),
+        transaction_amount: body.amount,
         description: "Doação Feltro Fácil",
-        payment_method_id: body.payment_method,
-        payer: body.payer,
+        payment_method_id: body.payment_method_id,
+        payer: {
+          email: body.email
+        }
       }
     });
 
     return {
       statusCode: 200,
-      headers: {"Content-Type": "application/json"},
       body: JSON.stringify(result)
     };
 
-  } catch (err) {
-    console.error("Erro criar pagamento:", err);
+  } catch (e) {
+    console.log("ERRO PIX:", e);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: e.message })
     };
   }
 };
