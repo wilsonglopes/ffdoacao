@@ -127,4 +127,141 @@
             const btnStripe = document.getElementById('btn-stripe');
 
             if (method === 'mp') {
-                btnMp.classList.add('selected-amount', 'border-feltro-
+                btnMp.classList.add('selected-amount', 'border-feltro-purple');
+                btnMp.classList.remove('border-stone-200', 'text-stone-600');
+                btnStripe.classList.remove('selected-amount', 'bg-slate-800', 'border-slate-800');
+                btnStripe.classList.add('border-stone-200', 'text-stone-600');
+            } else {
+                btnStripe.classList.add('selected-amount', 'bg-slate-800', 'border-slate-800');
+                btnStripe.classList.remove('border-stone-200', 'text-stone-600');
+                btnMp.classList.remove('selected-amount', 'border-feltro-purple');
+                btnMp.classList.add('border-stone-200', 'text-stone-600');
+            }
+            resetPaymentForms();
+        }
+
+        function resetPaymentForms() {
+            document.getElementById('payment-container').classList.add('hidden');
+            document.getElementById('start-checkout-btn').classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+            if (paymentBrickController) {
+                paymentBrickController.unmount();
+                paymentBrickController = null;
+            }
+            document.getElementById('mercadopago-brick-container').innerHTML = '';
+            document.getElementById('stripe-payment-form').classList.add('hidden');
+        }
+
+        async function initiateCheckout() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.add('hidden');
+
+            if (!currentAmount || isNaN(currentAmount) || currentAmount < 5) {
+                errorDiv.innerText = "Por favor, escolha um valor mínimo de R$ 5,00.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('start-checkout-btn').classList.add('hidden');
+            document.getElementById('payment-container').classList.remove('hidden');
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            
+            try {
+                if (currentMethod === 'mp') await renderMercadoPago();
+                else await renderStripe();
+            } catch (error) {
+                console.error("Erro:", error);
+                errorDiv.innerHTML = `Erro: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+                document.getElementById('loading-spinner').classList.add('hidden');
+                document.getElementById('start-checkout-btn').classList.remove('hidden');
+            }
+        }
+
+        async function renderMercadoPago() {
+            const container = document.getElementById('mercadopago-brick-container');
+            container.classList.remove('hidden');
+            container.innerHTML = ''; 
+            
+            // 1. Backend
+            const response = await fetch('/.netlify/functions/create-mp-donation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: currentAmount })
+            });
+
+            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
+            const data = await response.json();
+            
+            if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
+            console.log("Preference ID OK:", data.preferenceId);
+
+            // 2. Brick COM A CORREÇÃO "mercadoPago"
+            const bricksBuilder = mpInstance.bricks();
+            
+            const settings = {
+                initialization: {
+                    amount: currentAmount,
+                    preferenceId: data.preferenceId,
+                },
+                // --- AQUI ESTÁ A CORREÇÃO DEFINITIVA ---
+                // O erro diz que 'mercadoPago' deve ser fornecido junto com 'preferenceId'
+                mercadoPago: {
+                    publicKey: MP_PUBLIC_KEY,
+                    locale: 'pt-BR'
+                },
+                // ---------------------------------------
+                customization: {
+                    paymentMethods: {
+                        ticket: "all",
+                        bankTransfer: "all",
+                        creditCard: "all",
+                        debitCard: "all",
+                    },
+                    visual: { style: { theme: 'bootstrap' } }
+                },
+                callbacks: {
+                    onReady: () => {
+                        document.getElementById('loading-spinner').classList.add('hidden');
+                    },
+                    onError: (error) => {
+                        console.error("Erro Brick:", error);
+                        document.getElementById('error-message').innerText = "Erro ao carregar Mercado Pago.";
+                        document.getElementById('error-message').classList.remove('hidden');
+                        document.getElementById('loading-spinner').classList.add('hidden');
+                    },
+                    onSubmit: () => { return new Promise((resolve) => resolve()); },
+                },
+            };
+            
+            paymentBrickController = await bricksBuilder.create('payment', 'mercadopago-brick-container', settings);
+        }
+
+        async function renderStripe() {
+            document.getElementById('stripe-payment-form').classList.remove('hidden');
+            const response = await fetch("/.netlify/functions/create-stripe-donation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amount: currentAmount })
+            });
+            if (!response.ok) throw new Error(`Erro Stripe (${response.status})`);
+            const { clientSecret } = await response.json();
+            document.getElementById('loading-spinner').classList.add('hidden');
+            const stripeElements = stripeInstance.elements({ appearance: { theme: 'stripe' }, clientSecret });
+            const paymentElement = stripeElements.create("payment");
+            paymentElement.mount("#stripe-payment-element");
+            document.getElementById('stripe-payment-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const { error } = await stripeInstance.confirmPayment({
+                    elements: stripeElements,
+                    confirmParams: { return_url: window.location.origin + "/obrigado.html" },
+                });
+                if (error) {
+                    document.getElementById('error-message').innerText = error.message;
+                    document.getElementById('error-message').classList.remove('hidden');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
