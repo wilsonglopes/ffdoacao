@@ -17,6 +17,22 @@
         .loader { border-top-color: #800080; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
+
+    <style>
+#paymentBrick_container svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+#paymentBrick_container svg[width=""] {
+  width: 24px !important;
+}
+
+#paymentBrick_container svg[height=""] {
+  height: 24px !important;
+}
+</style>
+
 </head>
 <body class="text-stone-800">
 
@@ -273,3 +289,4 @@
     </script>
 </body>
 </html>
+
