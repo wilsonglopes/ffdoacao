@@ -88,7 +88,7 @@
     </main>
 
     <script>
-        // --- SUAS CHAVES CONFIGURADAS ---
+        // --- SUAS CHAVES ---
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
 
@@ -99,7 +99,6 @@
         let stripeElements = null;
         let paymentBrickController = null;
 
-        // Inicializa SDKs
         try {
             if(window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
             if(window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
@@ -173,7 +172,7 @@
                 }
             } catch (error) {
                 console.error("Erro no checkout:", error);
-                errorDiv.innerHTML = `Erro ao iniciar pagamento.<br>Verifique se a função backend está na pasta correta 'netlify/functions'.`;
+                errorDiv.innerHTML = `Erro ao iniciar pagamento. Verifique o console para mais detalhes.`;
                 errorDiv.classList.remove('hidden');
                 document.getElementById('start-checkout-btn').classList.remove('hidden');
                 document.getElementById('payment-container').classList.add('hidden');
@@ -204,6 +203,10 @@
                     visual: { style: { theme: 'bootstrap' } }
                 },
                 callbacks: {
+                    // ADICIONADO: Callback onReady exigido pela nova versão
+                    onReady: () => {
+                        console.log('Brick de pagamento pronto');
+                    },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
                         return new Promise((resolve) => setTimeout(resolve, 1500));
                     },
@@ -232,7 +235,6 @@
 
             document.getElementById('stripe-payment-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // Stripe lida com o redirect e loading automaticamente com confirmPayment
                 const { error } = await stripeInstance.confirmPayment({
                     elements: stripeElements,
                     confirmParams: { return_url: window.location.origin + "/obrigado.html" },
