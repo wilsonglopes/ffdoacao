@@ -1,20 +1,9 @@
 {
   "name": "doacao-feltro-facil",
-  "version": "1.0.0",
-  "description": "Sistema de doação via MercadoPago e Stripe",
-  "main": "functions/create-mp-donation.js",
+  "version": "2.0.0",
+  "description": "Sistema de doação",
   "dependencies": {
     "mercadopago": "^2.0.0",
     "stripe": "^14.0.0"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "donation",
-    "mercadopago",
-    "stripe"
-  ],
-  "author": "Feltro Facil",
-  "license": "ISC"
+  }
 }
