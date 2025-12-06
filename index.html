@@ -93,7 +93,6 @@
 
     <script>
         // --- CHAVES DE API ---
-        // Atualizado com a sua Public Key nova:
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -219,10 +218,12 @@
                 },
                 customization: {
                     paymentMethods: {
-                        ticket: "all",
-                        bankTransfer: "all",
-                        creditCard: "all",
-                        debitCard: "all",
+                        // AQUI ESTÁ A CORREÇÃO FINAL:
+                        bankTransfer: "all", // Inclui Pix
+                        creditCard: "all",   // Crédito
+                        debitCard: "all",    // Débito
+                        // "ticket" removido (Adeus Boleto!)
+                        // "pix" removido (Para evitar o erro "Invalid param")
                     },
                     visual: { style: { theme: 'bootstrap' } }
                 },
@@ -236,7 +237,10 @@
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
-                    onSubmit: () => { return new Promise((resolve) => resolve()); },
+                    onSubmit: () => { 
+                        // Função vazia que apenas resolve a promessa para destravar o botão
+                        return new Promise((resolve) => resolve()); 
+                    },
                 },
             };
             
@@ -271,4 +275,3 @@
     </script>
 </body>
 </html>
-
