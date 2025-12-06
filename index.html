@@ -8,7 +8,6 @@
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script src="https://js.stripe.com/v3/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #FEF2F2; }
         .bg-feltro-purple { background-color: #800080; } 
@@ -218,12 +217,11 @@
                 },
                 customization: {
                     paymentMethods: {
-                        // AQUI ESTÁ A CORREÇÃO FINAL:
                         bankTransfer: "all", // Inclui Pix
                         creditCard: "all",   // Crédito
                         debitCard: "all",    // Débito
-                        // "ticket" removido (Adeus Boleto!)
-                        // "pix" removido (Para evitar o erro "Invalid param")
+                        // "ticket" removido (Boleto)
+                        // "pix" removido (Causava erro)
                     },
                     visual: { style: { theme: 'bootstrap' } }
                 },
@@ -237,8 +235,8 @@
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
+                    // Simplesmente libera o fluxo para abrir a próxima tela (ex: QR Code)
                     onSubmit: () => { 
-                        // Função vazia que apenas resolve a promessa para destravar o botão
                         return new Promise((resolve) => resolve()); 
                     },
                 },
