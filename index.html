@@ -14,6 +14,7 @@
         .text-feltro-purple { color: #800080; }
         .border-feltro-purple { border-color: #800080; }
         .selected-amount { background-color: #800080; color: white; border-color: #800080; }
+        /* Animação do Loading */
         .loader { border-top-color: #800080; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -89,9 +90,8 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO DAS CHAVES REAIS (Atualizadas com sua imagem)
+        // --- SUAS CHAVES ---
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
-        // A chave pública do Stripe você pode manter a que já estava ou atualizar se tiver uma nova
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
 
         let currentAmount = 0;
@@ -176,7 +176,7 @@
                 }
             } catch (error) {
                 console.error("Erro no checkout:", error);
-                errorDiv.innerHTML = `Erro de comunicação com o servidor (404).<br>Verifique se a pasta 'netlify/functions' existe no GitHub.`;
+                errorDiv.innerHTML = `Erro ao carregar o pagamento. Tente novamente.<br>Detalhe: ${error.message}`;
                 errorDiv.classList.remove('hidden');
                 document.getElementById('start-checkout-btn').classList.remove('hidden');
                 document.getElementById('payment-container').classList.add('hidden');
@@ -192,7 +192,7 @@
                 body: JSON.stringify({ amount: currentAmount })
             });
 
-            if (!response.ok) throw new Error(`Erro do servidor (${response.status})`);
+            if (!response.ok) throw new Error(`Erro de comunicação com o servidor (${response.status})`);
 
             const data = await response.json();
             if (!data.preferenceId) throw new Error('ID de preferência não retornado.');
@@ -206,9 +206,11 @@
                 },
                 customization: {
                     paymentMethods: {
-                        ticket: "all",
-                        creditCard: "all",
-                        pix: "all"
+                        // AQUI ESTÁ A MUDANÇA:
+                        bankTransfer: "all", // Inclui Pix
+                        pix: "all",          // Reforça Pix
+                        creditCard: "all",   // Mantém Cartão
+                        // "ticket" (Boleto) foi removido
                     },
                     visual: {
                         style: { theme: 'bootstrap' }
@@ -216,7 +218,6 @@
                 },
                 callbacks: {
                     onReady: () => {
-                        console.log('Brick pronto');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
