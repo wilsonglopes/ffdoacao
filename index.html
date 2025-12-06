@@ -92,7 +92,7 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO
+        // --- SUAS CHAVES ---
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -102,6 +102,7 @@
         let stripeInstance = null;
         let paymentBrickController = null;
 
+        // Inicialização
         try {
             if(window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
             if(window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
@@ -185,7 +186,7 @@
             container.classList.remove('hidden');
             container.innerHTML = ''; 
             
-            // 1. Backend
+            // 1. Chamada ao Backend (que já está funcionando)
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -206,7 +207,7 @@
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
             console.log("Preference ID OK:", data.preferenceId);
 
-            // 2. Brick COM A CORREÇÃO
+            // 2. Configuração do Brick (COM A CORREÇÃO)
             const bricksBuilder = mpInstance.bricks();
             
             const settings = {
@@ -214,12 +215,12 @@
                     amount: currentAmount,
                     preferenceId: data.preferenceId,
                 },
-                // --- AQUI ESTÁ A CORREÇÃO DO ERRO ---
+                // --- AQUI ESTÁ A CORREÇÃO QUE FALTAVA ---
                 mercadoPago: {
                     publicKey: MP_PUBLIC_KEY,
                     locale: 'pt-BR'
                 },
-                // ------------------------------------
+                // ---------------------------------------
                 customization: {
                     paymentMethods: {
                         ticket: "all",
@@ -235,7 +236,7 @@
                     },
                     onError: (error) => {
                         console.error("Erro Brick:", error);
-                        document.getElementById('error-message').innerText = "Erro ao carregar Mercado Pago.";
+                        document.getElementById('error-message').innerText = "Erro ao carregar Mercado Pago. Tente novamente.";
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
