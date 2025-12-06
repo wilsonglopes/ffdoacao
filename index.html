@@ -84,13 +84,13 @@
                 </form>
             </div>
         </div>
-
         <div class="text-center mt-6 text-stone-500 text-xs">
             <p>Ambiente Seguro • Processado por MercadoPago e Stripe</p>
         </div>
     </main>
 
     <script>
+        // --- CHAVES DE API ---
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -100,6 +100,7 @@
         let stripeInstance = null;
         let paymentBrickController = null;
 
+        // Inicializa SDKs
         try {
             if(window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
             if(window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
@@ -183,6 +184,7 @@
             container.classList.remove('hidden');
             container.innerHTML = ''; 
             
+            // 1. Chama backend
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -199,9 +201,10 @@
             }
 
             const data = await response.json();
-            
             if (!data.preferenceId) throw new Error('ID de pagamento não recebido.');
+            console.log("ID OK:", data.preferenceId);
 
+            // 2. Renderiza Brick com configuração LIMPA
             const bricksBuilder = mpInstance.bricks();
             
             const settings = {
@@ -209,13 +212,10 @@
                     amount: currentAmount, 
                     preferenceId: data.preferenceId,
                 },
-                mercadoPago: {
-                    publicKey: MP_PUBLIC_KEY,
-                    locale: 'pt-BR'
-                },
+                // REMOVIDO: O bloco 'mercadoPago' aqui estava causando o erro
                 customization: {
                     paymentMethods: {
-                        bankTransfer: "all", 
+                        bankTransfer: "all", // Pix
                         creditCard: "all",
                         debitCard: "all",
                     },
@@ -227,7 +227,7 @@
                     },
                     onError: (error) => {
                         console.error("Erro Brick:", error);
-                        document.getElementById('error-message').innerText = "Erro ao carregar Mercado Pago.";
+                        document.getElementById('error-message').innerText = "Erro ao carregar formulário de pagamento.";
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('loading-spinner').classList.add('hidden');
                     },
