@@ -1,33 +1,35 @@
-const { MercadoPagoConfig, Preference } = require('mercadopago');
+const { MercadoPagoConfig, Payment } = require("mercadopago");
 
-exports.handler = async function(event, context) {
-  // Configura com a chave que está nas variáveis do Netlify
-  const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
-  const preference = new Preference(client);
-
+exports.handler = async function (event) {
   try {
-    // Cria a preferência de venda
-    const body = {
-      items: [
-        {
-          title: 'Doação Feltro Fácil',
-          quantity: 1,
-          unit_price: 50, // Você pode passar esse valor dinamicamente se quiser
-          currency_id: 'BRL',
-        },
-      ],
-    };
+    const accessToken = process.env.MP_ACCESS_TOKEN;
+    if (!accessToken) throw new Error("Token MP faltando");
 
-    const result = await preference.create({ body });
+    const client = new MercadoPagoConfig({ accessToken });
+    const payment = new Payment(client);
+
+    const body = JSON.parse(event.body || "{}");
+
+    const result = await payment.create({
+      body: {
+        transaction_amount: Number(body.transaction_amount),
+        description: "Doação Feltro Fácil",
+        payment_method_id: body.payment_method,
+        payer: body.payer,
+      }
+    });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ preferenceId: result.id }), // Retorna o ID que falta para o seu botão
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(result)
     };
-  } catch (error) {
+
+  } catch (err) {
+    console.error("Erro criar pagamento:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: err.message })
     };
   }
 };
