@@ -91,7 +91,6 @@
     </main>
 
     <script>
-        // CONFIGURAÇÃO DAS CHAVES
         const MP_PUBLIC_KEY = 'APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6'; 
         const STRIPE_PUBLIC_KEY = 'pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU'; 
         
@@ -184,7 +183,6 @@
             container.classList.remove('hidden');
             container.innerHTML = ''; 
             
-            // Tenta chamar o Backend. Se der 404, o erro será capturado aqui.
             const response = await fetch('/.netlify/functions/create-mp-donation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -192,7 +190,12 @@
             });
 
             if (!response.ok) {
-                throw new Error(`Erro ao conectar com servidor (${response.status}). Verifique se netlify.toml foi removido.`);
+                let errorMsg = `Erro do servidor (${response.status})`;
+                try {
+                     const errData = await response.json();
+                     if(errData.error) errorMsg = errData.error;
+                } catch(e) {}
+                throw new Error(errorMsg);
             }
 
             const data = await response.json();
@@ -212,7 +215,6 @@
                 },
                 customization: {
                     paymentMethods: {
-                        // AQUI ESTÁ A CORREÇÃO FINAL: Usamos bankTransfer e removemos "pix" e "ticket"
                         bankTransfer: "all", 
                         creditCard: "all",
                         debitCard: "all",
