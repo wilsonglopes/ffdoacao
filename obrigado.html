@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obrigado! - Feltro Fácil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FEF2F2; }
+        .text-feltro-purple { color: #800080; }
+        .bg-feltro-purple { background-color: #800080; }
+    </style>
+</head>
+<body class="text-stone-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 md:p-12 rounded-xl shadow-xl max-w-lg text-center border border-stone-100">
+        
+        <img src="logo-f.png" alt="Logo Feltro Fácil" class="h-16 w-auto mx-auto mb-6">
+        
+        <div class="mb-6">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-feltro-purple mb-2">Muito Obrigado!</h1>
+            <p class="text-stone-600 text-lg">Sua contribuição foi recebida com sucesso.</p>
+        </div>
+
+        <p class="text-stone-500 mb-8">
+            Graças ao seu apoio, continuaremos criando conteúdos incríveis e moldes exclusivos para você.
+        </p>
+
+        <a href="index.html" class="inline-block w-full bg-feltro-purple text-white font-bold py-4 rounded-lg shadow-lg hover:bg-purple-800 transition-transform transform active:scale-95 text-lg">
+            Voltar ao Início
+        </a>
+        
+        <div class="mt-6 text-xs text-stone-400">
+            Você receberá um comprovante no seu e-mail em breve.
+        </div>
+    </div>
+
+    <script>
+        // Efeito de confete ao carregar a página
+        window.onload = function() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        };
+    </script>
+</body>
+</html>
