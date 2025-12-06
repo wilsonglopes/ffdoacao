@@ -1,10 +1,9 @@
 {
-  "name": "doacao-feltro-facil",
+  "name": "doacao-feltrofacil",
   "version": "1.0.0",
-  "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "mercadopago": "^2.0.8",
-    "stripe": "^14.0.0"
+    "mercadopago": "^1.5.17",
+    "stripe": "^14.14.0",
+    "@supabase/supabase-js": "^2.39.3"
   }
 }
