@@ -1,185 +1,197 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apoie a Feltro Fácil - Doação Segura</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Apoie a Feltro Fácil - Doação Segura</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-    <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
+  <script src="https://js.stripe.com/v3/"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #FEF2F2; }
-        .bg-feltro-purple { background-color: #800080; } 
-        .text-feltro-purple { color: #800080; }
-        .border-feltro-purple { border-color: #800080; }
-        .selected-amount { background-color: #800080; color: white; border-color: #800080; }
-        .loader { border-top-color: #800080; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #FEF2F2; }
+    .bg-feltro-purple { background-color: #800080; } 
+    .selected-amount { background-color: #800080; color: white; border-color: #800080; }
+    .loader { border-top-color: #800080; animation: spinner 1.5s linear infinite; }
+    @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
 </head>
-
 <body class="text-stone-800">
 
 <header class="bg-white/90 backdrop-blur-lg shadow-sm sticky top-0 z-50">
-    <nav class="container mx-auto px-4 py-4 flex justify-center items-center">
-        <img src="logo-f.png" alt="Logo Feltro Fácil" class="h-12 w-auto" onerror="this.style.display='none'">
-    </nav>
+  <nav class="container mx-auto px-4 py-4 flex justify-center items-center">
+    <img src="logo-f.png" alt="Logo Feltro Fácil" class="h-12 w-auto" onerror="this.style.display='none'">
+  </nav>
 </header>
 
 <main class="container mx-auto px-4 py-10 max-w-2xl">
-<div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-stone-100">
+  <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-stone-100">
 
     <div class="text-center mb-8">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Faça a sua contribuição</h1>
-        <p class="text-stone-600 mt-2">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Faça a sua contribuição</h1>
+      <p class="text-stone-600 mt-2">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
     </div>
 
-    <!-- Seleção de valor -->
     <div class="mb-8">
-        <label class="block text-sm font-semibold text-stone-700 mb-3">Escolha o valor da doação:</label>
-        <div class="grid grid-cols-3 gap-4 mb-4">
-            <button onclick="selectAmount(10)" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 10</button>
-            <button onclick="selectAmount(30)" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 30</button>
-            <button onclick="selectAmount(50)" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 50</button>
-        </div>
+      <label class="block text-sm font-semibold text-stone-700 mb-3">Escolha o valor da doação:</label>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <button type="button" data-amount="10" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 10</button>
+        <button type="button" data-amount="30" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 30</button>
+        <button type="button" data-amount="50" class="amount-btn border-2 border-stone-200 rounded-lg py-3 font-semibold text-stone-600 hover:border-feltro-purple">R$ 50</button>
+      </div>
 
-        <div class="relative">
-            <span class="absolute left-4 top-3.5 text-stone-500 font-semibold">R$</span>
-            <input id="custom-amount" type="number" placeholder="Outro valor (mínimo R$ 5)"
-                class="w-full pl-12 pr-4 py-3 border-2 border-stone-200 rounded-lg focus:border-feltro-purple"
-                oninput="selectAmount(this.value, true)">
-        </div>
+      <div class="relative">
+        <span class="absolute left-4 top-3.5 text-stone-500 font-semibold">R$</span>
+        <input id="custom-amount" type="number" min="5" placeholder="Outro valor (mínimo R$ 5)"
+               class="w-full pl-12 pr-4 py-3 border-2 border-stone-200 rounded-lg focus:border-feltro-purple">
+      </div>
     </div>
 
-    <!-- Escolha do método -->
     <div class="mb-8">
-        <label class="block text-sm font-semibold text-stone-700 mb-3">Você está no Brasil ou no Exterior?</label>
-        <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
-            <button id="btn-mp" onclick="setMethod('mp')" 
-                class="flex-1 py-4 px-4 border-2 rounded-lg font-semibold flex items-center justify-center gap-2 selected-amount">
-                🇧🇷 Brasil (Pix/Cartão)
-            </button>
-
-            <button id="btn-stripe" onclick="setMethod('stripe')" 
-                class="flex-1 py-4 px-4 border-2 border-stone-200 rounded-lg font-semibold text-stone-600 hover:border-gray-400">
-                🌍 Internacional (Stripe)
-            </button>
-        </div>
+      <label class="block text-sm font-semibold text-stone-700 mb-3">Você está no Brasil ou no Exterior?</label>
+      <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+        <button id="btn-mp" type="button" data-method="mp" class="flex-1 py-4 px-4 border-2 rounded-lg font-semibold flex items-center justify-center gap-2 selected-amount">🇧🇷 Brasil (Pix/Cartão)</button>
+        <button id="btn-stripe" type="button" data-method="stripe" class="flex-1 py-4 px-4 border-2 border-stone-200 rounded-lg font-semibold text-stone-600 hover:border-gray-400">🌍 Internacional (Stripe)</button>
+      </div>
     </div>
 
     <div id="error-message" class="hidden bg-red-50 text-red-600 p-3 rounded-md mb-4 text-sm text-center border border-red-200"></div>
 
-    <button id="start-checkout-btn" onclick="initiateCheckout()" 
-        class="w-full bg-feltro-purple text-white font-bold py-4 rounded-lg shadow-lg hover:bg-purple-800 text-lg">
-        Continuar para Pagamento
-    </button>
+    <button id="start-checkout-btn" type="button" class="w-full bg-feltro-purple text-white font-bold py-4 rounded-lg shadow-lg hover:bg-purple-800 text-lg">Continuar para Pagamento</button>
 
-    <!-- Área onde os métodos aparecem -->
     <div id="payment-container" class="mt-8 hidden">
-        <div id="loading-spinner" class="flex justify-center py-8 hidden">
-            <div class="loader rounded-full border-4 border-gray-200 h-12 w-12"></div>
-        </div>
+      <div id="loading-spinner" class="flex justify-center py-8 hidden">
+        <div class="loader rounded-full border-4 border-gray-200 h-12 w-12"></div>
+      </div>
 
-        <div id="mercadopago-brick-container"></div>
+      <div id="mercadopago-brick-container"></div>
 
-        <form id="stripe-payment-form" class="hidden mt-4">
-            <div id="stripe-payment-element"></div>
-            <button id="stripe-submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800">
-                <span id="stripe-button-text">Pagar Agora</span>
-            </button>
-        </form>
+      <form id="stripe-payment-form" class="hidden mt-4">
+        <div id="stripe-payment-element"></div>
+        <button id="stripe-submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-md hover:bg-slate-800">Pagar Agora</button>
+      </form>
     </div>
 
-</div>
-<div class="text-center mt-6 text-stone-500 text-xs">Ambiente Seguro • Processado por MercadoPago e Stripe</div>
+  </div>
+
+  <div class="text-center mt-6 text-stone-500 text-xs">Ambiente Seguro • Processado por MercadoPago e Stripe</div>
 </main>
 
 <script>
-/* -------------------------------------------------------
-   CONFIG
-------------------------------------------------------- */
+/* --------------------
+   CONFIGURAÇÃO
+   -------------------- */
 const MP_PUBLIC_KEY = "APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6";
 const STRIPE_PUBLIC_KEY = "pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU";
 
+/* --------------------
+   ESTADO
+   -------------------- */
 let currentAmount = 0;
 let currentMethod = "mp";
 let mpInstance = null;
 let stripeInstance = null;
 let paymentBrickController = null;
 
-/* -------------------------------------------------------
-   Inicialização dos SDKs
-------------------------------------------------------- */
-try {
+/* --------------------
+   UTIL
+   -------------------- */
+function showError(msg) {
+  const el = document.getElementById("error-message");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+function hideError() {
+  const el = document.getElementById("error-message");
+  el.classList.add("hidden");
+  el.textContent = "";
+}
+
+/* --------------------
+   LOGICA principal - aguarda DOM
+   -------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  // inicializa SDKs (se carregados)
+  try {
     if (window.MercadoPago) mpInstance = new MercadoPago(MP_PUBLIC_KEY, { locale: "pt-BR" });
     if (window.Stripe) stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
-} catch (e) {
-    console.error("Erro ao carregar SDK:", e);
-}
+  } catch (e) {
+    console.error("Erro ao inicializar SDKs:", e);
+  }
 
-/* -------------------------------------------------------
-   Seleção de valor
-------------------------------------------------------- */
-function selectAmount(val, custom = false) {
-    currentAmount = parseFloat(val);
+  // elementos
+  const amountButtons = document.querySelectorAll(".amount-btn");
+  const customInput = document.getElementById("custom-amount");
+  const btnMp = document.getElementById("btn-mp");
+  const btnStripe = document.getElementById("btn-stripe");
+  const startBtn = document.getElementById("start-checkout-btn");
 
-    document.querySelectorAll(".amount-btn").forEach(btn => {
-        const v = parseFloat(btn.innerText.replace("R$ ", ""));
-        if (!custom && v === currentAmount) {
-            btn.classList.add("selected-amount");
-            document.getElementById("custom-amount").value = "";
-        } else {
-            btn.classList.remove("selected-amount");
-        }
+  // ligar listeners nos botões de valor
+  amountButtons.forEach(b => {
+    b.addEventListener("click", () => {
+      const v = parseFloat(b.getAttribute("data-amount"));
+      selectAmount(v, false);
     });
+  });
 
+  // custom input
+  customInput.addEventListener("input", () => {
+    const v = parseFloat(customInput.value);
+    selectAmount(v, true);
+  });
+
+  // método
+  btnMp.addEventListener("click", () => setMethod("mp"));
+  btnStripe.addEventListener("click", () => setMethod("stripe"));
+
+  // iniciar checkout
+  startBtn.addEventListener("click", () => {
+    initiateCheckout().catch(err => {
+      console.error("Erro initiateCheckout:", err);
+      showError(err.message || "Erro inesperado");
+    });
+  });
+
+  // funções (definidas aqui para garantir escopo)
+  function selectAmount(val, isCustom = false) {
+    currentAmount = Number(val) || 0;
+    // visual
+    amountButtons.forEach(btn => {
+      const btnVal = Number(btn.getAttribute("data-amount"));
+      btn.classList.toggle("selected-amount", !isCustom && btnVal === currentAmount);
+    });
+    if (!isCustom) customInput.value = "";
     resetCheckout();
-}
+  }
 
-/* -------------------------------------------------------
-   Método MP / Stripe
-------------------------------------------------------- */
-function setMethod(m) {
+  function setMethod(m) {
     currentMethod = m;
-
-    document.getElementById("btn-mp").classList.toggle("selected-amount", m === "mp");
-    document.getElementById("btn-stripe").classList.toggle("selected-amount", m === "stripe");
-
+    btnMp.classList.toggle("selected-amount", m === "mp");
+    btnStripe.classList.toggle("selected-amount", m === "stripe");
     resetCheckout();
-}
+  }
 
-/* -------------------------------------------------------
-   Reset do Checkout
-------------------------------------------------------- */
-function resetCheckout() {
+  function resetCheckout() {
     document.getElementById("payment-container").classList.add("hidden");
     document.getElementById("start-checkout-btn").classList.remove("hidden");
-    document.getElementById("error-message").classList.add("hidden");
-
-    if (paymentBrickController) {
-        paymentBrickController.unmount();
-        paymentBrickController = null;
+    hideError();
+    if (paymentBrickController && typeof paymentBrickController.unmount === "function") {
+      try { paymentBrickController.unmount(); } catch(e){ console.warn("Erro ao unmount:", e); }
+      paymentBrickController = null;
     }
-
     document.getElementById("mercadopago-brick-container").innerHTML = "";
     document.getElementById("stripe-payment-form").classList.add("hidden");
-}
+  }
 
-/* -------------------------------------------------------
-   Iniciar checkout
-------------------------------------------------------- */
-async function initiateCheckout() {
-    const err = document.getElementById("error-message");
-    err.classList.add("hidden");
+  async function initiateCheckout() {
+    hideError();
 
-    if (!currentAmount || currentAmount < 5) {
-        err.textContent = "Por favor, escolha um valor mínimo de R$ 5,00.";
-        err.classList.remove("hidden");
-        return;
+    if (!currentAmount || isNaN(currentAmount) || currentAmount < 5) {
+      showError("Por favor, escolha um valor mínimo de R$ 5,00.");
+      return;
     }
 
     document.getElementById("start-checkout-btn").classList.add("hidden");
@@ -187,43 +199,81 @@ async function initiateCheckout() {
     document.getElementById("loading-spinner").classList.remove("hidden");
 
     try {
-        currentMethod === "mp" ? await renderMercadoPago() : await renderStripe();
-    } catch (e) {
-        console.error(e);
-        err.textContent = e.message;
-        err.classList.remove("hidden");
-        document.getElementById("loading-spinner").classList.add("hidden");
-        document.getElementById("start-checkout-btn").classList.remove("hidden");
+      if (currentMethod === "mp") await renderMercadoPago();
+      else await renderStripe();
+    } catch (err) {
+      console.error("Erro no checkout:", err);
+      showError(err.message || "Erro ao iniciar checkout.");
+      document.getElementById("loading-spinner").classList.add("hidden");
+      document.getElementById("start-checkout-btn").classList.remove("hidden");
     }
-}
+  }
 
-/* -------------------------------------------------------
-   Mercado Pago — CORRIGIDO
-------------------------------------------------------- */
-async function renderMercadoPago() {
+  async function renderMercadoPago() {
     if (!mpInstance) throw new Error("SDK MercadoPago não carregado.");
 
-    const res = await fetch("/.netlify/functions/create-mp-donation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: currentAmount })
+    const resp = await fetch("/.netlify/functions/create-mp-donation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: currentAmount })
     });
 
-    const data = await res.json();
-    if (!data.preferenceId) throw new Error("Erro ao criar pagamento.");
+    if (!resp.ok) {
+      const txt = await resp.text().catch(()=>"");
+      throw new Error(`Erro servidor MP (${resp.status}) ${txt}`);
+    }
 
-    console.log("Preference ID:", data.preferenceId);
+    const data = await resp.json();
+    if (!data.preferenceId) throw new Error("ID de pagamento não recebido.");
 
-    const bricksBuilder = mpInstance.bricks();
+    try {
+      const bricksBuilder = mpInstance.bricks();
+      paymentBrickController = await bricksBuilder.create("payment", "mercadopago-brick-container", {
+        initialization: { preferenceId: data.preferenceId, amount: currentAmount },
+        mercadoPago: { publicKey: MP_PUBLIC_KEY, locale: "pt-BR" },
+        customization: { paymentMethods: { ticket: "all", bankTransfer: "all", creditCard: "all", debitCard: "all" } },
+        callbacks: {
+          onReady: () => document.getElementById("loading-spinner").classList.add("hidden"),
+          onError: (e) => { console.error("Erro Brick:", e); showError("Erro ao carregar Mercado Pago."); }
+        }
+      });
+    } catch (brickErr) {
+      console.error("Falha ao criar Brick:", brickErr);
+      throw brickErr;
+    }
+  }
 
-    paymentBrickController = await bricksBuilder.create("payment", "mercadopago-brick-container", {
-        initialization: {
-            preferenceId: data.preferenceId,
-            amount: currentAmount
-        },
-        mercadoPago: {
-            publicKey: MP_PUBLIC_KEY,
-            locale: "pt-BR"
-        },
-        customization: {
-            paymentMethods: {
+  async function renderStripe() {
+    if (!stripeInstance) throw new Error("SDK Stripe não carregado.");
+
+    const resp = await fetch("/.netlify/functions/create-stripe-donation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: currentAmount })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(()=>"");
+      throw new Error(`Erro servidor Stripe (${resp.status}) ${txt}`);
+    }
+
+    const { clientSecret } = await resp.json();
+    document.getElementById("loading-spinner").classList.add("hidden");
+    document.getElementById("stripe-payment-form").classList.remove("hidden");
+
+    const elements = stripeInstance.elements({ clientSecret });
+    const paymentElement = elements.create("payment");
+    paymentElement.mount("#stripe-payment-element");
+
+    document.getElementById("stripe-payment-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const { error } = await stripeInstance.confirmPayment({ elements, confirmParams: { return_url: window.location.origin + "/obrigado.html" }});
+      if (error) showError(error.message || "Erro Stripe");
+    };
+  }
+
+}); // DOMContentLoaded
+</script>
+
+</body>
+</html>
