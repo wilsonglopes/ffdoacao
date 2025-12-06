@@ -22,7 +22,7 @@ exports.handler = async function(event, context) {
             currency: 'brl',
             product_data: {
               name: 'Contribuição Feltro Fácil',
-              images: ['https://feltrofacil.com.br/wp-content/uploads/2016/10/logo-feltro-facil.png'],
+              images: ['https://feltrofacil.com.br/wp-content/uploads/2016/10/logo.png'],
             },
             unit_amount: amountInCents,
           },
@@ -47,3 +47,4 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
