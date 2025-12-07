@@ -1,5 +1,3 @@
-
-
 // Inicializa o Stripe com a chave SECRETA (sk_live...)
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -10,6 +8,10 @@ exports.handler = async function(event, context) {
 
   try {
     const { amount } = JSON.parse(event.body);
+
+    // --- CONFIGURAÇÃO DA URL ---
+    // Pega a URL do site automaticamente (Netlify ou Localhost)
+    const baseUrl = process.env.URL || "http://localhost:8888";
 
     // O Stripe trabalha com centavos (R$ 10,00 = 1000 centavos)
     const amountInCents = Math.round(parseFloat(amount) * 100);
@@ -22,7 +24,8 @@ exports.handler = async function(event, context) {
             currency: 'brl',
             product_data: {
               name: 'Contribuição Feltro Fácil',
-              images: ['https://ffdoacao.netlify.app/public/images/logo.png'],
+              // Ajuste do caminho da imagem: Removemos '/public' pois no site final ela fica na raiz
+              images: [`${baseUrl}/images/logo.png`],
             },
             unit_amount: amountInCents,
           },
@@ -30,8 +33,10 @@ exports.handler = async function(event, context) {
         },
       ],
       mode: 'payment',
-      success_url: 'https://feltrofacil.com.br/obrigado',
-      cancel_url: 'https://feltrofacil.com.br/',
+      // --- ALTERAÇÃO PRINCIPAL ---
+      // Redireciona para obrigado.html levando o valor (amount) na URL
+      success_url: `${baseUrl}/obrigado.html?amount=${amount}`,
+      cancel_url: `${baseUrl}/index.html`,
     });
 
     return {
@@ -47,5 +52,3 @@ exports.handler = async function(event, context) {
     };
   }
 };
-
-
