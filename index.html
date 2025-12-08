@@ -20,8 +20,9 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Estilo do Iframe */
-        #mp-iframe { width: 100%; height: 650px; border: none; border-radius: 8px; }
+        /* Estilos dos Checkouts */
+        /* Altura aumentada para caber o layout vertical confortavelmente */
+        #mp-iframe { width: 100%; height: 700px; border: none; border-radius: 8px; }
         #stripe-checkout { min-height: 400px; width: 100%; }
     </style>
 </head>
@@ -75,7 +76,7 @@
     <div id="payment-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
         <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
-            <div class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-3xl w-full">
+            <div class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-md w-full">
                 <div class="bg-white px-4 py-3 flex justify-end absolute top-0 right-0 z-10">
                     <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none bg-white rounded-full p-1 shadow-sm">
                         <span class="sr-only">Fechar</span>
@@ -101,8 +102,6 @@
     <script>
         let selectedValue = 0;
         let currentMethod = 'br';
-        
-        // Stripe Key
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
         function selectAmount(amount) {
@@ -159,7 +158,7 @@
 
             try {
                 if (currentMethod === 'br') {
-                    // --- FLUXO MERCADO PAGO (IFRAME) ---
+                    // --- FLUXO MERCADO PAGO (Iframe) ---
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -169,19 +168,17 @@
                     
                     if (data.init_point) {
                         const iframe = document.getElementById('mp-iframe');
-                        // Adiciona init_point ao src do iframe
                         iframe.src = data.init_point;
-                        
                         iframe.onload = function() {
                             document.getElementById('modal-loader').classList.add('hidden');
                             iframe.classList.remove('hidden');
                         };
                     } else {
-                        throw new Error('Link de pagamento não gerado (verifique o console).');
+                        throw new Error('Link de pagamento não gerado.');
                     }
 
                 } else {
-                    // --- FLUXO STRIPE (EMBEDDED) ---
+                    // --- FLUXO STRIPE (Embedded) ---
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -193,7 +190,6 @@
                         const checkout = await stripe.initEmbeddedCheckout({
                             clientSecret: data.clientSecret,
                         });
-                        
                         document.getElementById('modal-loader').classList.add('hidden');
                         document.getElementById('stripe-checkout').classList.remove('hidden');
                         checkout.mount('#stripe-checkout');
