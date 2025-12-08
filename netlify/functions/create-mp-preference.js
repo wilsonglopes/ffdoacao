@@ -1,5 +1,3 @@
-const mercadopago = require('mercadopago');
-
 exports.handler = async function(event, context) {
   // Headers para evitar CORS
   const headers = {
@@ -11,14 +9,12 @@ exports.handler = async function(event, context) {
     return { statusCode: 405, headers, body: 'Method Not Allowed' };
   }
 
-  // Configura Token
-  mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
-
   try {
     const { amount } = JSON.parse(event.body);
     const baseUrl = process.env.URL || "http://localhost:8888";
 
-    const preference = {
+    // Dados da preferência
+    const preferenceData = {
       items: [
         {
           title: 'Contribuição Feltro Fácil',
@@ -27,24 +23,37 @@ exports.handler = async function(event, context) {
           unit_price: parseFloat(amount)
         }
       ],
-      // URLs para onde o usuário vai APÓS o pagamento ser processado pelo Brick
       back_urls: {
         success: `${baseUrl}/obrigado.html?amount=${amount}`,
         failure: `${baseUrl}/index.html`,
         pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      binary_mode: true, // Aprovação imediata (útil para doação)
+      binary_mode: true,
       statement_descriptor: "FELTROFACIL"
     };
 
-    const response = await mercadopago.preferences.create(preference);
+    // Chamada direta à API do Mercado Pago (sem usar a biblioteca pesada)
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(preferenceData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(JSON.stringify(data));
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        id: response.body.id // O Brick precisa EXATAMENTE deste ID
+        id: data.id // Retorna o ID para o Frontend
       }),
     };
 
