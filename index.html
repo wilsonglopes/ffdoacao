@@ -21,7 +21,7 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Ajuste de altura */
+        /* Ajuste de altura para os formulários não "pularem" */
         #stripe-checkout, #mp-brick-container { min-height: 400px; width: 100%; }
     </style>
 </head>
@@ -29,7 +29,7 @@
 
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 z-10 relative">
         <div class="text-center mb-8">
-            <img src="public/images/logo.png" alt="Feltro Fácil" class="h-12 mx-auto mb-4 object-contain">
+            <img src="images/logo.png" alt="Feltro Fácil" class="h-12 mx-auto mb-4 object-contain">
             <h1 class="text-2xl font-bold text-gray-800">Faça a sua contribuição</h1>
             <p class="text-gray-500 text-sm mt-2">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
         </div>
@@ -101,7 +101,7 @@
     <script>
         let selectedValue = 0;
         let currentMethod = 'br';
-        let mpBrickController = null;
+        let mpBrickController = null; // Controle para destruir o brick ao fechar
         
         const mp = new MercadoPago('APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6', { locale: 'pt-BR' });
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
@@ -147,6 +147,7 @@
         async function closeModal() {
             document.getElementById('payment-modal').classList.add('hidden');
             document.getElementById('stripe-checkout').innerHTML = '';
+            // Se existir um Brick do MP, desmonta ele para não duplicar
             if (mpBrickController) {
                 await mpBrickController.unmount();
                 mpBrickController = null;
@@ -163,7 +164,7 @@
 
             try {
                 if (currentMethod === 'br') {
-                    // --- FLUXO MERCADO PAGO ---
+                    // --- FLUXO MERCADO PAGO (PAYMENT BRICK) ---
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -183,11 +184,9 @@
                             },
                             customization: {
                                 visual: {
-                                    style: { theme: 'bootstrap' }
+                                    style: { theme: 'bootstrap' } // Visual limpo
                                 },
                                 paymentMethods: {
-                                    // CORREÇÃO DO PIX: Adicionado bankTransfer
-                                    bankTransfer: "all", 
                                     ticket: "all",
                                     creditCard: "all",
                                     debitCard: "all",
@@ -197,6 +196,8 @@
                             callbacks: {
                                 onReady: () => { console.log('Brick pronto'); },
                                 onSubmit: ({ selectedPaymentMethod, formData }) => {
+                                    // O Brick processa tudo sozinho com base na preferência criada no backend.
+                                    // Quando o pagamento for aprovado, ele redireciona para a back_url (obrigado.html)
                                     return new Promise((resolve) => resolve()); 
                                 },
                                 onError: (error) => { console.error(error); },
@@ -208,7 +209,7 @@
                     }
 
                 } else {
-                    // --- FLUXO STRIPE ---
+                    // --- FLUXO STRIPE (EMBEDDED) ---
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
