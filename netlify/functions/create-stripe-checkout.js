@@ -1,22 +1,29 @@
-// Inicializa o Stripe com a chave SECRETA (sk_live...)
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.handler = async function(event, context) {
+  // Cabeçalhos para evitar erro de CORS se necessário
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, headers, body: 'Method Not Allowed' };
   }
 
   try {
     const { amount } = JSON.parse(event.body);
 
-    // --- CONFIGURAÇÃO DA URL ---
-    // Pega a URL do site automaticamente (Netlify ou Localhost)
+    // --- CONFIGURAÇÃO DA URL (Crítico para o Stripe Embedded) ---
+    // Se process.env.URL não existir (local), usa localhost.
+    // O Stripe EXIGE uma URL absoluta válida para o return_url.
     const baseUrl = process.env.URL || "http://localhost:8888";
 
-    // O Stripe trabalha com centavos (R$ 10,00 = 1000 centavos)
+    // Converte para centavos
     const amountInCents = Math.round(parseFloat(amount) * 100);
 
     const session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded', // OBRIGATÓRIO para o modal funcionar
       payment_method_types: ['card'],
       line_items: [
         {
@@ -24,7 +31,6 @@ exports.handler = async function(event, context) {
             currency: 'brl',
             product_data: {
               name: 'Contribuição Feltro Fácil',
-              // Ajuste do caminho da imagem: Removemos '/public' pois no site final ela fica na raiz
               images: [`${baseUrl}/images/logo.png`],
             },
             unit_amount: amountInCents,
@@ -33,21 +39,23 @@ exports.handler = async function(event, context) {
         },
       ],
       mode: 'payment',
-      // --- ALTERAÇÃO PRINCIPAL ---
-      // Redireciona para obrigado.html levando o valor (amount) na URL
-      success_url: `${baseUrl}/obrigado.html?amount=${amount}`,
-      cancel_url: `${baseUrl}/index.html`,
+      // return_url é obrigatório no modo embedded
+      return_url: `${baseUrl}/obrigado.html?session_id={CHECKOUT_SESSION_ID}&amount=${amount}`,
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: session.id }),
+      headers,
+      body: JSON.stringify({ 
+        clientSecret: session.client_secret // O Frontend precisa EXATAMENTE disso
+      }),
     };
 
   } catch (error) {
     console.error('Erro Stripe:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: error.message }),
     };
   }
