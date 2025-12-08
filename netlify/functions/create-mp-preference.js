@@ -1,19 +1,21 @@
 const mercadopago = require('mercadopago');
 
 exports.handler = async function(event, context) {
+  // Headers para evitar CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, headers, body: 'Method Not Allowed' };
   }
 
-  // Configura com a chave de ACESSO (Access Token) das variáveis de ambiente
+  // Configura Token
   mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
 
   try {
     const { amount } = JSON.parse(event.body);
-
-    // --- CONFIGURAÇÃO DA URL ---
-    // O Netlify preenche 'process.env.URL' automaticamente.
-    // Localmente usa localhost.
     const baseUrl = process.env.URL || "http://localhost:8888";
 
     const preference = {
@@ -25,37 +27,33 @@ exports.handler = async function(event, context) {
           unit_price: parseFloat(amount)
         }
       ],
-      payment_methods: {
-        excluded_payment_types: [],
-        installments: 1
-      },
-      // URLs para onde o Mercado Pago vai redirecionar dentro do iframe
+      // URLs para onde o usuário vai APÓS o pagamento ser processado pelo Brick
       back_urls: {
         success: `${baseUrl}/obrigado.html?amount=${amount}`,
         failure: `${baseUrl}/index.html`,
         pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      // ADICIONADO: Força aprovação ou rejeição imediata (sem pendente)
-      // Melhora a experiência dentro do Modal
-      binary_mode: true 
+      binary_mode: true, // Aprovação imediata (útil para doação)
+      statement_descriptor: "FELTROFACIL"
     };
 
     const response = await mercadopago.preferences.create(preference);
 
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify({ 
-        // Retornamos o init_point para colocar no src do iframe
-        init_point: response.body.init_point,
-        id: response.body.id
+        id: response.body.id // O Brick precisa EXATAMENTE deste ID
       }),
     };
+
   } catch (error) {
     console.error('Erro MP:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Erro ao criar pagamento' }),
+      headers,
+      body: JSON.stringify({ error: 'Erro ao criar preferência MP' }),
     };
   }
 };
