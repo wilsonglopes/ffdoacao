@@ -17,13 +17,12 @@
         .bg-brand-purple { background-color: #800080; }
         .bg-brand-purple:hover { background-color: #6B21A8; }
         
-        /* CSS do Modal e Iframe */
+        /* Loader */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #mp-iframe { width: 100%; height: 600px; border: none; border-radius: 8px; }
         
-        /* Ajuste para o Stripe não estourar o modal */
-        #stripe-checkout { min-height: 400px; width: 100%; }
+        /* Ajuste de altura para os formulários não "pularem" */
+        #stripe-checkout, #mp-brick-container { min-height: 400px; width: 100%; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -93,7 +92,7 @@
                     
                     <div id="stripe-checkout" class="hidden p-4"></div>
                     
-                    <iframe id="mp-iframe" class="hidden" src="" allow="payment"></iframe>
+                    <div id="mp-brick-container" class="hidden p-4"></div>
                 </div>
             </div>
         </div>
@@ -102,8 +101,8 @@
     <script>
         let selectedValue = 0;
         let currentMethod = 'br';
+        let mpBrickController = null; // Controle para destruir o brick ao fechar
         
-        // --- SUAS CHAVES PÚBLICAS (NÃO MEXER AQUI) ---
         const mp = new MercadoPago('APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6', { locale: 'pt-BR' });
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
@@ -140,15 +139,19 @@
             document.getElementById('payment-modal').classList.remove('hidden');
             document.getElementById('modal-loader').classList.remove('hidden');
             document.getElementById('stripe-checkout').classList.add('hidden');
-            document.getElementById('mp-iframe').classList.add('hidden');
-            document.getElementById('mp-iframe').src = "";
+            document.getElementById('mp-brick-container').classList.add('hidden');
             document.getElementById('stripe-checkout').innerHTML = '';
+            document.getElementById('mp-brick-container').innerHTML = '';
         }
 
-        function closeModal() {
+        async function closeModal() {
             document.getElementById('payment-modal').classList.add('hidden');
-            document.getElementById('mp-iframe').src = "";
             document.getElementById('stripe-checkout').innerHTML = '';
+            // Se existir um Brick do MP, desmonta ele para não duplicar
+            if (mpBrickController) {
+                await mpBrickController.unmount();
+                mpBrickController = null;
+            }
         }
 
         document.getElementById('submit-btn').addEventListener('click', async () => {
@@ -161,7 +164,7 @@
 
             try {
                 if (currentMethod === 'br') {
-                    // --- FLUXO MERCADO PAGO (IFRAME) ---
+                    // --- FLUXO MERCADO PAGO (PAYMENT BRICK) ---
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -169,29 +172,50 @@
                     });
                     const data = await response.json();
                     
-                    if (data.init_point) {
-                        const iframe = document.getElementById('mp-iframe');
-                        iframe.src = data.init_point;
-                        iframe.onload = function() {
-                            document.getElementById('modal-loader').classList.add('hidden');
-                            iframe.classList.remove('hidden');
+                    if (data.id) {
+                        const bricksBuilder = mp.bricks();
+                        document.getElementById('modal-loader').classList.add('hidden');
+                        document.getElementById('mp-brick-container').classList.remove('hidden');
+
+                        const settings = {
+                            initialization: {
+                                amount: selectedValue,
+                                preferenceId: data.id,
+                            },
+                            customization: {
+                                visual: {
+                                    style: { theme: 'bootstrap' } // Visual limpo
+                                },
+                                paymentMethods: {
+                                    ticket: "all",
+                                    creditCard: "all",
+                                    debitCard: "all",
+                                    mercadoPago: "all",
+                                },
+                            },
+                            callbacks: {
+                                onReady: () => { console.log('Brick pronto'); },
+                                onSubmit: ({ selectedPaymentMethod, formData }) => {
+                                    // O Brick processa tudo sozinho com base na preferência criada no backend.
+                                    // Quando o pagamento for aprovado, ele redireciona para a back_url (obrigado.html)
+                                    return new Promise((resolve) => resolve()); 
+                                },
+                                onError: (error) => { console.error(error); },
+                            },
                         };
+                        mpBrickController = await bricksBuilder.create("payment", "mp-brick-container", settings);
                     } else {
-                        throw new Error('Mercado Pago não retornou o link (init_point).');
+                        throw new Error('Erro ao gerar ID de preferência do MP.');
                     }
 
                 } else {
                     // --- FLUXO STRIPE (EMBEDDED) ---
-                    console.log("Iniciando requisição Stripe...");
-                    
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ amount: selectedValue })
                     });
-                    
                     const data = await response.json();
-                    console.log("Resposta Stripe:", data); // Para debug no console
 
                     if (data.clientSecret) {
                         const checkout = await stripe.initEmbeddedCheckout({
@@ -202,13 +226,12 @@
                         document.getElementById('stripe-checkout').classList.remove('hidden');
                         checkout.mount('#stripe-checkout');
                     } else {
-                        // Se cair aqui, o backend retornou erro.
                         throw new Error(data.error || 'Stripe não retornou clientSecret.');
                     }
                 }
             } catch (error) {
-                console.error("ERRO COMPLETO:", error);
-                alert(`Erro: ${error.message}. Verifique o console para mais detalhes.`);
+                console.error("ERRO:", error);
+                alert(`Erro: ${error.message}`);
                 closeModal();
             }
         });
