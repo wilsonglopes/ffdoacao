@@ -3,6 +3,12 @@
   functions = "netlify/functions"
   publish = "."
 
+[functions]
+  # Usa o empacotador moderno que não trava com o Mercado Pago
+  node_bundler = "esbuild" 
+  # Diz ao Netlify para copiar a pasta inteira em vez de tentar ler arquivo por arquivo
+  external_node_modules = ["mercadopago", "stripe"]
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
