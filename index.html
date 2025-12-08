@@ -10,39 +10,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Quicksand', sans-serif; background-color: #FFF0F5; } /* Fundo rosa claro */
+        body { font-family: 'Quicksand', sans-serif; background-color: #FFF0F5; }
         .btn-amount.selected { background-color: #FCE7F3; border-color: #800080; color: #800080; font-weight: 700; }
         .method-card.selected { border-color: #800080; background-color: #FDF4FF; ring: 2px solid #800080; }
-        /* Cor roxa da marca (ajustado para o tom da imagem) */
         .brand-purple { color: #6B21A8; }
         .bg-brand-purple { background-color: #800080; }
         .bg-brand-purple:hover { background-color: #6B21A8; }
         
-        /* ADICIONADO: Estilos necessários para o Modal e Iframe */
+        /* CSS do Modal e Iframe */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #mp-iframe { width: 100%; height: 600px; border: none; border-radius: 8px; }
+        
+        /* Ajuste para o Stripe não estourar o modal */
+        #stripe-checkout { min-height: 400px; width: 100%; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 z-10 relative">
-        
         <div class="text-center mb-8">
-            <img src="public/images/logo.png" alt="Feltro Fácil" class="h-12 mx-auto mb-4 object-contain">
+            <img src="images/logo.png" alt="Feltro Fácil" class="h-12 mx-auto mb-4 object-contain">
             <h1 class="text-2xl font-bold text-gray-800">Faça a sua contribuição</h1>
             <p class="text-gray-500 text-sm mt-2">Ajude a Feltro Fácil a continuar criando conteúdo de qualidade.</p>
         </div>
 
         <div class="space-y-4">
             <p class="text-sm font-semibold text-gray-700">Escolha o valor da doação:</p>
-            
             <div class="grid grid-cols-3 gap-3">
                 <button type="button" class="btn-amount border border-gray-300 rounded-lg py-3 text-gray-600 hover:bg-gray-50 transition" onclick="selectAmount(10)">R$ 10</button>
                 <button type="button" class="btn-amount border border-gray-300 rounded-lg py-3 text-gray-600 hover:bg-gray-50 transition" onclick="selectAmount(30)">R$ 30</button>
                 <button type="button" class="btn-amount border border-gray-300 rounded-lg py-3 text-gray-600 hover:bg-gray-50 transition" onclick="selectAmount(50)">R$ 50</button>
             </div>
-
             <div class="relative">
                 <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">R$</span>
                 <input type="number" id="custom-amount" placeholder="Outro valor (mínimo R$ 5)" 
@@ -53,13 +52,11 @@
 
         <div class="mt-8 space-y-4">
             <p class="text-sm font-semibold text-gray-700">Você está no Brasil ou no Exterior?</p>
-            
             <div class="grid grid-cols-2 gap-3">
                 <div id="method-br" class="method-card cursor-pointer border border-gray-300 rounded-lg p-3 flex flex-col items-center justify-center transition hover:bg-gray-50 selected" onclick="selectMethod('br')">
                     <span class="font-bold text-sm brand-purple">🇧🇷 Brasil</span>
                     <span class="text-xs text-gray-500">(Pix/Cartão)</span>
                 </div>
-
                 <div id="method-int" class="method-card cursor-pointer border border-gray-300 rounded-lg p-3 flex flex-col items-center justify-center transition hover:bg-gray-50" onclick="selectMethod('int')">
                     <span class="font-bold text-sm text-blue-600">🌎 Internacional</span>
                     <span class="text-xs text-gray-500">(Stripe)</span>
@@ -93,20 +90,21 @@
                         <div class="loader"></div>
                         <p class="text-center text-gray-500 text-sm mt-2">Carregando...</p>
                     </div>
+                    
                     <div id="stripe-checkout" class="hidden p-4"></div>
+                    
                     <iframe id="mp-iframe" class="hidden" src="" allow="payment"></iframe>
                 </div>
             </div>
         </div>
     </div>
+
     <script>
         let selectedValue = 0;
-        let currentMethod = 'br'; // 'br' ou 'int'
+        let currentMethod = 'br';
         
-        // Inicializa o Mercado Pago
+        // --- SUAS CHAVES PÚBLICAS (NÃO MEXER AQUI) ---
         const mp = new MercadoPago('APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6', { locale: 'pt-BR' });
-        
-        // Inicializa Stripe
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
         function selectAmount(amount) {
@@ -138,7 +136,6 @@
             document.getElementById('method-int').classList.toggle('selected', method === 'int');
         }
 
-        // --- NOVAS FUNÇÕES DO MODAL ---
         function openModal() {
             document.getElementById('payment-modal').classList.remove('hidden');
             document.getElementById('modal-loader').classList.remove('hidden');
@@ -155,14 +152,11 @@
         }
 
         document.getElementById('submit-btn').addEventListener('click', async () => {
-            const btn = document.getElementById('submit-btn');
-            
             if (!selectedValue || selectedValue < 5) {
                 alert('Por favor, escolha um valor mínimo de R$ 5,00');
                 return;
             }
 
-            // Abre o modal ao invés de desabilitar o botão e esperar
             openModal();
 
             try {
@@ -183,32 +177,38 @@
                             iframe.classList.remove('hidden');
                         };
                     } else {
-                        throw new Error('Link de pagamento não gerado.');
+                        throw new Error('Mercado Pago não retornou o link (init_point).');
                     }
 
                 } else {
                     // --- FLUXO STRIPE (EMBEDDED) ---
+                    console.log("Iniciando requisição Stripe...");
+                    
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ amount: selectedValue })
                     });
-                    const data = await response.json();
                     
+                    const data = await response.json();
+                    console.log("Resposta Stripe:", data); // Para debug no console
+
                     if (data.clientSecret) {
                         const checkout = await stripe.initEmbeddedCheckout({
                             clientSecret: data.clientSecret,
                         });
+                        
                         document.getElementById('modal-loader').classList.add('hidden');
                         document.getElementById('stripe-checkout').classList.remove('hidden');
                         checkout.mount('#stripe-checkout');
                     } else {
-                        throw new Error('Erro ao iniciar sessão Stripe');
+                        // Se cair aqui, o backend retornou erro.
+                        throw new Error(data.error || 'Stripe não retornou clientSecret.');
                     }
                 }
             } catch (error) {
-                console.error(error);
-                alert('Ocorreu um erro ao carregar o pagamento. Tente novamente.');
+                console.error("ERRO COMPLETO:", error);
+                alert(`Erro: ${error.message}. Verifique o console para mais detalhes.`);
                 closeModal();
             }
         });
