@@ -1,5 +1,5 @@
 exports.handler = async function(event, context) {
-  // Headers para evitar CORS
+  // Headers padrão
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -13,7 +13,7 @@ exports.handler = async function(event, context) {
     const { amount } = JSON.parse(event.body);
     const baseUrl = process.env.URL || "http://localhost:8888";
 
-    // Dados da preferência
+    // Monta o JSON da preferência manualmente
     const preferenceData = {
       items: [
         {
@@ -33,7 +33,8 @@ exports.handler = async function(event, context) {
       statement_descriptor: "FELTROFACIL"
     };
 
-    // Chamada direta à API do Mercado Pago (sem usar a biblioteca pesada)
+    // CONEXÃO DIRETA COM A API (Sem biblioteca pesada)
+    // Isso evita 100% o erro de deploy do Netlify
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
@@ -46,6 +47,7 @@ exports.handler = async function(event, context) {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('Erro API MP:', data);
       throw new Error(JSON.stringify(data));
     }
 
@@ -53,12 +55,12 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        id: data.id // Retorna o ID para o Frontend
+        id: data.id // Retorna o ID que o Frontend precisa para o Brick
       }),
     };
 
   } catch (error) {
-    console.error('Erro MP:', error);
+    console.error('Erro Função:', error);
     return {
       statusCode: 500,
       headers,
