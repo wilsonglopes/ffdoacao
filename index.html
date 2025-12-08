@@ -17,11 +17,16 @@
         .brand-purple { color: #6B21A8; }
         .bg-brand-purple { background-color: #800080; }
         .bg-brand-purple:hover { background-color: #6B21A8; }
+        
+        /* ADICIONADO: Estilos necessários para o Modal e Iframe */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #mp-iframe { width: 100%; height: 600px; border: none; border-radius: 8px; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 z-10 relative">
         
         <div class="text-center mb-8">
             <img src="public/images/logo.png" alt="Feltro Fácil" class="h-12 mx-auto mb-4 object-contain">
@@ -71,33 +76,52 @@
         </div>
     </div>
 
+    <div id="payment-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+        <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+            <div class="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-3xl w-full">
+                <div class="bg-white px-4 py-3 flex justify-end absolute top-0 right-0 z-10">
+                    <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none bg-white rounded-full p-1 shadow-sm">
+                        <span class="sr-only">Fechar</span>
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="bg-gray-50 min-h-[300px]">
+                    <div id="modal-loader" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-20">
+                        <div class="loader"></div>
+                        <p class="text-center text-gray-500 text-sm mt-2">Carregando...</p>
+                    </div>
+                    <div id="stripe-checkout" class="hidden p-4"></div>
+                    <iframe id="mp-iframe" class="hidden" src="" allow="payment"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         let selectedValue = 0;
         let currentMethod = 'br'; // 'br' ou 'int'
         
-        // Inicializa o Mercado Pago (Chave Pública)
-        // Substitua APENAS esta chave pela sua pública se mudar, a secreta fica no servidor.
+        // Inicializa o Mercado Pago
         const mp = new MercadoPago('APP_USR-7c3fa8cf-7680-42a9-bcd7-388e72fbcfe6', { locale: 'pt-BR' });
         
-        // Inicializa Stripe (Chave Pública)
+        // Inicializa Stripe
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
         function selectAmount(amount) {
             selectedValue = amount;
-            document.getElementById('custom-amount').value = ''; // Limpa input customizado
+            document.getElementById('custom-amount').value = ''; 
             updateAmountUI();
         }
 
         function handleCustomInput() {
             const input = document.getElementById('custom-amount');
             selectedValue = parseFloat(input.value);
-            
-            // Remove seleção dos botões
             document.querySelectorAll('.btn-amount').forEach(btn => btn.classList.remove('selected', 'border-purple-600', 'bg-purple-50'));
         }
 
         function updateAmountUI() {
-            // Lógica visual dos botões
             const buttons = document.querySelectorAll('.btn-amount');
             buttons.forEach(btn => {
                 if (parseInt(btn.innerText.replace('R$ ', '')) === selectedValue) {
@@ -114,6 +138,22 @@
             document.getElementById('method-int').classList.toggle('selected', method === 'int');
         }
 
+        // --- NOVAS FUNÇÕES DO MODAL ---
+        function openModal() {
+            document.getElementById('payment-modal').classList.remove('hidden');
+            document.getElementById('modal-loader').classList.remove('hidden');
+            document.getElementById('stripe-checkout').classList.add('hidden');
+            document.getElementById('mp-iframe').classList.add('hidden');
+            document.getElementById('mp-iframe').src = "";
+            document.getElementById('stripe-checkout').innerHTML = '';
+        }
+
+        function closeModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById('mp-iframe').src = "";
+            document.getElementById('stripe-checkout').innerHTML = '';
+        }
+
         document.getElementById('submit-btn').addEventListener('click', async () => {
             const btn = document.getElementById('submit-btn');
             
@@ -122,12 +162,12 @@
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerText = 'Processando...';
+            // Abre o modal ao invés de desabilitar o botão e esperar
+            openModal();
 
             try {
                 if (currentMethod === 'br') {
-                    // Fluxo Mercado Pago
+                    // --- FLUXO MERCADO PAGO (IFRAME) ---
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -136,13 +176,18 @@
                     const data = await response.json();
                     
                     if (data.init_point) {
-                        window.location.href = data.init_point; // Redireciona para o checkout do MP
+                        const iframe = document.getElementById('mp-iframe');
+                        iframe.src = data.init_point;
+                        iframe.onload = function() {
+                            document.getElementById('modal-loader').classList.add('hidden');
+                            iframe.classList.remove('hidden');
+                        };
                     } else {
-                        throw new Error('Erro ao criar preferência MP');
+                        throw new Error('Link de pagamento não gerado.');
                     }
 
                 } else {
-                    // Fluxo Stripe
+                    // --- FLUXO STRIPE (EMBEDDED) ---
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -150,20 +195,23 @@
                     });
                     const data = await response.json();
                     
-                    if (data.id) {
-                        await stripe.redirectToCheckout({ sessionId: data.id });
+                    if (data.clientSecret) {
+                        const checkout = await stripe.initEmbeddedCheckout({
+                            clientSecret: data.clientSecret,
+                        });
+                        document.getElementById('modal-loader').classList.add('hidden');
+                        document.getElementById('stripe-checkout').classList.remove('hidden');
+                        checkout.mount('#stripe-checkout');
                     } else {
-                        throw new Error('Erro ao criar sessão Stripe');
+                        throw new Error('Erro ao iniciar sessão Stripe');
                     }
                 }
             } catch (error) {
                 console.error(error);
-                alert('Ocorreu um erro ao processar. Tente novamente.');
-                btn.disabled = false;
-                btn.innerText = 'Continuar para Pagamento';
+                alert('Ocorreu um erro ao carregar o pagamento. Tente novamente.');
+                closeModal();
             }
         });
     </script>
 </body>
 </html>
-
