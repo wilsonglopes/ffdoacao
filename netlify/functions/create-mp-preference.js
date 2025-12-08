@@ -12,9 +12,8 @@ exports.handler = async function(event, context) {
     const { amount } = JSON.parse(event.body);
 
     // --- CONFIGURAÇÃO DA URL ---
-    // O Netlify preenche 'process.env.URL' automaticamente quando o site está no ar.
-    // Se estiver testando localmente, ele usa localhost.
-    // Se preferir, você pode apagar isso e colocar sua URL fixa: const baseUrl = "https://seu-site.netlify.app";
+    // O Netlify preenche 'process.env.URL' automaticamente.
+    // Localmente usa localhost.
     const baseUrl = process.env.URL || "http://localhost:8888";
 
     const preference = {
@@ -30,15 +29,16 @@ exports.handler = async function(event, context) {
         excluded_payment_types: [],
         installments: 1
       },
-      // --- AQUI ESTÁ A ALTERAÇÃO ---
-      // Redireciona para obrigado.html levando o valor (amount) na URL
+      // URLs para onde o Mercado Pago vai redirecionar dentro do iframe
       back_urls: {
         success: `${baseUrl}/obrigado.html?amount=${amount}`,
         failure: `${baseUrl}/index.html`,
-        pending: `${baseUrl}/index.html` // Pendente geralmente volta para a home ou uma tela de aviso
+        pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      statement_descriptor: "FELTROFACIL"
+      // ADICIONADO: Força aprovação ou rejeição imediata (sem pendente)
+      // Melhora a experiência dentro do Modal
+      binary_mode: true 
     };
 
     const response = await mercadopago.preferences.create(preference);
@@ -46,8 +46,9 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 200,
       body: JSON.stringify({ 
-        id: response.body.id, 
-        init_point: response.body.init_point 
+        // Retornamos o init_point para colocar no src do iframe
+        init_point: response.body.init_point,
+        id: response.body.id
       }),
     };
   } catch (error) {
