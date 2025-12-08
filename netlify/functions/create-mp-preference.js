@@ -1,5 +1,4 @@
 exports.handler = async function(event, context) {
-  // Headers padrão
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -13,7 +12,7 @@ exports.handler = async function(event, context) {
     const { amount } = JSON.parse(event.body);
     const baseUrl = process.env.URL || "http://localhost:8888";
 
-    // Monta o JSON da preferência manualmente
+    // Dados da preferência
     const preferenceData = {
       items: [
         {
@@ -23,18 +22,21 @@ exports.handler = async function(event, context) {
           unit_price: parseFloat(amount)
         }
       ],
+      payment_methods: {
+        excluded_payment_types: [],
+        installments: 1
+      },
       back_urls: {
         success: `${baseUrl}/obrigado.html?amount=${amount}`,
         failure: `${baseUrl}/index.html`,
         pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      binary_mode: true,
-      statement_descriptor: "FELTROFACIL"
+      // binary_mode true ajuda a evitar pagamentos pendentes
+      binary_mode: true 
     };
 
-    // CONEXÃO DIRETA COM A API (Sem biblioteca pesada)
-    // Isso evita 100% o erro de deploy do Netlify
+    // Chamada nativa (Fetch) - Leve e à prova de falhas de deploy
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
@@ -55,7 +57,8 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        id: data.id // Retorna o ID que o Frontend precisa para o Brick
+        // Retornamos o init_point para o Iframe
+        init_point: data.init_point 
       }),
     };
 
