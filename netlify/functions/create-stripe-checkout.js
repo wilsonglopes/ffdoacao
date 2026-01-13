@@ -1,7 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.handler = async function(event, context) {
-  // Cabeçalhos para evitar erro de CORS se necessário
+  // Cabeçalhos para evitar erro de CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -12,42 +12,40 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { amount } = JSON.parse(event.body);
-
-    // --- CONFIGURAÇÃO DA URL (Crítico para o Stripe Embedded) ---
-    // Se process.env.URL não existir (local), usa localhost.
-    // O Stripe EXIGE uma URL absoluta válida para o return_url.
+    // URL base (Local ou Produção)
     const baseUrl = process.env.URL || "http://localhost:8888";
 
-    // Converte para centavos
-    const amountInCents = Math.round(parseFloat(amount) * 100);
+    // --- CONFIGURAÇÃO DE PREÇO FIXO ---
+    // R$ 6,97 = 697 centavos (O Stripe trabalha com centavos inteiros)
+    const UNIT_AMOUNT_CENTS = 697;
 
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded', // OBRIGATÓRIO para o modal funcionar
+      ui_mode: 'embedded', // Modo embutido na página
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: 'Contribuição Feltro Fácil',
-              images: [`${baseUrl}/images/logo.png`],
+              name: 'Apostila Digital - Crucifixo em Feltro',
+              // Aponta para a imagem que você salvou em public/images/crucifixo.jpg
+              images: [`${baseUrl}/images/crucifixo.jpg`],
             },
-            unit_amount: amountInCents,
+            unit_amount: UNIT_AMOUNT_CENTS, // Valor fixo
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      // return_url é obrigatório no modo embedded
-      return_url: `${baseUrl}/obrigado.html?session_id={CHECKOUT_SESSION_ID}&amount=${amount}`,
+      // Redirecionamento após o pagamento
+      return_url: `${baseUrl}/obrigado.html?session_id={CHECKOUT_SESSION_ID}`,
     });
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        clientSecret: session.client_secret // O Frontend precisa EXATAMENTE disso
+        clientSecret: session.client_secret 
       }),
     };
 
