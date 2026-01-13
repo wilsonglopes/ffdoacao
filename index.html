@@ -7,15 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.stripe.com/v3/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
-
     <style>
         body { font-family: 'Quicksand', sans-serif; background-color: #FFF0F5; }
         .brand-purple { color: #6B21A8; }
         .bg-brand-purple { background-color: #800080; }
         .bg-brand-purple:hover { background-color: #6B21A8; }
         .method-card.selected { border-color: #800080; background-color: #FDF4FF; ring: 2px solid #800080; }
-        
-        /* Loader */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #800080; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -39,13 +36,14 @@
                 <div class="inline-block bg-purple-50 px-6 py-2 rounded-full border border-purple-100">
                     <p class="text-purple-700 text-4xl font-bold">R$ 6,97</p>
                 </div>
+            </div>
 
-                <div class="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-left flex items-start gap-3">
-                    <span class="text-xl">📧</span>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        <strong>Atenção:</strong> O arquivo PDF será enviado automaticamente para o <strong>e-mail</strong> que você cadastrar na tela de pagamento.
-                    </p>
-                </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                    Onde você quer receber a apostila?
+                </label>
+                <input type="email" id="user-email" placeholder="Digite seu melhor e-mail..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all text-gray-700 bg-gray-50" required>
+                <p id="email-error" class="text-red-500 text-xs mt-1 hidden">Por favor, digite um e-mail válido.</p>
             </div>
 
             <div class="space-y-4 mb-8">
@@ -78,35 +76,24 @@
 
     <div id="payment-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm"></div>
-
         <div class="fixed inset-0 flex items-center justify-center p-0 sm:p-4">
-            
             <div class="bg-white w-full h-full sm:w-[95%] sm:h-[90%] sm:max-w-6xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
-                
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white z-10">
                     <div class="flex items-center gap-2">
                         <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Seguro</span>
                         <span class="text-gray-700 font-bold text-lg">Finalizar Compra</span>
                     </div>
                     <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full p-2 transition-all">
-                        <span class="sr-only">Fechar</span>
-                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-
                 <div class="flex-grow relative bg-gray-50">
-                    
                     <div id="modal-loader" class="absolute inset-0 flex flex-col items-center justify-center z-20 bg-white">
                         <div class="loader mb-4"></div>
-                        <p class="text-gray-600 font-medium animate-pulse">Conectando ao gateway de pagamento...</p>
+                        <p class="text-gray-600 font-medium animate-pulse">Gerando seu link de pagamento...</p>
                     </div>
-
                     <div id="stripe-checkout" class="hidden h-full w-full overflow-y-auto p-4"></div>
-
                     <iframe id="mp-iframe" class="hidden absolute inset-0 w-full h-full border-0" src="" allow="payment"></iframe>
-                
                 </div>
             </div>
         </div>
@@ -115,9 +102,7 @@
     <script>
         const PRODUCT_PRICE = 6.97; 
         let currentMethod = 'br';
-        let pollingInterval = null; // Variável para controlar a verificação automática
-
-        // Chave do Stripe
+        let pollingInterval = null;
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
         function selectMethod(method) {
@@ -139,41 +124,47 @@
             document.getElementById('payment-modal').classList.add('hidden');
             document.getElementById('mp-iframe').src = "";
             document.getElementById('stripe-checkout').innerHTML = '';
-            
-            // Para de verificar se o usuário fechar a janela
             if (pollingInterval) clearInterval(pollingInterval);
         }
 
-        // --- FUNÇÃO PARA VIGIAR O PAGAMENTO (POLLING) ---
         function startPolling(preferenceId) {
             if (pollingInterval) clearInterval(pollingInterval);
-
-            // Verifica a cada 3 segundos
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/.netlify/functions/check-status?preferenceId=${preferenceId}`);
                     const data = await response.json();
-
                     if (data.status === 'approved') {
-                        clearInterval(pollingInterval); // Para de verificar
-                        window.location.href = '/obrigado.html'; // Redireciona!
+                        clearInterval(pollingInterval);
+                        window.location.href = '/obrigado.html'; 
                     }
-                } catch (error) {
-                    console.error("Erro na verificação:", error);
-                }
+                } catch (error) { console.error("Erro na verificação:", error); }
             }, 3000);
         }
 
         document.getElementById('submit-btn').addEventListener('click', async () => {
+            const emailInput = document.getElementById('user-email');
+            const email = emailInput.value.trim();
+            const emailError = document.getElementById('email-error');
+
+            // Validação simples de e-mail
+            if (!email || !email.includes('@') || !email.includes('.')) {
+                emailInput.classList.add('border-red-500');
+                emailError.classList.remove('hidden');
+                emailInput.focus();
+                return; // Para tudo se não tiver e-mail
+            }
+            
+            emailInput.classList.remove('border-red-500');
+            emailError.classList.add('hidden');
             openModal();
 
             try {
                 if (currentMethod === 'br') {
-                    // --- Mercado Pago ---
+                    // Manda o email junto com o preço
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amount: PRODUCT_PRICE })
+                        body: JSON.stringify({ amount: PRODUCT_PRICE, email: email }) 
                     });
                     const data = await response.json();
                     
@@ -184,36 +175,23 @@
                             document.getElementById('modal-loader').classList.add('hidden');
                             iframe.classList.remove('hidden');
                         };
-
-                        // Se o backend retornou o ID, começamos a vigiar o pagamento
-                        if (data.id) {
-                            console.log("Iniciando verificação do pagamento ID:", data.id);
-                            startPolling(data.id);
-                        }
-
-                    } else {
-                        throw new Error('Link de pagamento não gerado.');
-                    }
+                        if (data.id) startPolling(data.id);
+                    } else { throw new Error('Link não gerado.'); }
 
                 } else {
-                    // --- Stripe ---
+                    // Stripe
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amount: PRODUCT_PRICE })
+                        body: JSON.stringify({ amount: PRODUCT_PRICE, email: email })
                     });
                     const data = await response.json();
-
                     if (data.clientSecret) {
-                        const checkout = await stripe.initEmbeddedCheckout({
-                            clientSecret: data.clientSecret,
-                        });
+                        const checkout = await stripe.initEmbeddedCheckout({ clientSecret: data.clientSecret });
                         document.getElementById('modal-loader').classList.add('hidden');
                         document.getElementById('stripe-checkout').classList.remove('hidden');
                         checkout.mount('#stripe-checkout');
-                    } else {
-                        throw new Error(data.error || 'Erro no Stripe.');
-                    }
+                    } else { throw new Error(data.error || 'Erro no Stripe.'); }
                 }
             } catch (error) {
                 console.error("ERRO:", error);
