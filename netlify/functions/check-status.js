@@ -1,40 +1,38 @@
-const mercadopago = require('mercadopago');
-
 exports.handler = async function(event) {
-  // Configura o Token
-  mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
+    const { preferenceId } = event.queryStringParameters;
 
-  const { preferenceId } = event.queryStringParameters;
-
-  if (!preferenceId) {
-    return { statusCode: 400, body: "ID da preferência é obrigatório" };
-  }
-
-  try {
-    // Busca se existe algum pagamento APROVADO ligado a esta preferência
-    const searchResult = await mercadopago.payment.search({
-      qs: {
-        preference_id: preferenceId,
-        status: 'approved'
-      }
-    });
-
-    // Se a lista de pagamentos aprovados for maior que 0, significa que pagou!
-    if (searchResult.body.results && searchResult.body.results.length > 0) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ status: 'approved' })
-      };
+    // Se não vier o ID, avisa o erro
+    if (!preferenceId) {
+        return { statusCode: 400, body: "ID da preferência é obrigatório" };
     }
 
-    // Se não achou nada aprovado ainda
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ status: 'pending' })
-    };
+    try {
+        // Chamada direta à API do Mercado Pago (sem biblioteca)
+        // Pergunta: "Tem algum pagamento APROVADO para essa preferência?"
+        const response = await fetch(`https://api.mercadopago.com/v1/payments/search?preference_id=${preferenceId}&status=approved`, {
+            headers: { 
+                'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` 
+            }
+        });
+        
+        const data = await response.json();
 
-  } catch (error) {
-    console.error('Erro ao verificar status:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
-  }
+        // Se a lista 'results' tiver algo, é porque pagou!
+        if (data.results && data.results.length > 0) {
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ status: 'approved' })
+            };
+        }
+
+        // Se não, continua pendente
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ status: 'pending' })
+        };
+
+    } catch (error) {
+        console.error('Erro no check-status:', error);
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    }
 };
