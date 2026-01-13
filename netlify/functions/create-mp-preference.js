@@ -14,10 +14,14 @@ exports.handler = async function(event, context) {
   mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
 
   try {
+    console.log("Iniciando criação de preferência..."); // Log para debug
+
     const { amount, email } = JSON.parse(event.body || '{}');
     const finalPrice = amount ? parseFloat(amount) : 6.97;
     // Garante que o email seja uma string válida
     const finalEmail = email && email.includes('@') ? email : 'email_nao_informado@loja.com';
+
+    console.log(`Email recebido do site: ${finalEmail}`); // Log para confirmar que o email chegou
 
     const preferenceData = {
       items: [
@@ -29,11 +33,11 @@ exports.handler = async function(event, context) {
           unit_price: finalPrice
         }
       ],
-      // 1. O CAMPO VISUAL (Para aparecer na tela do MP)
+      // 1. O CAMPO PADRÃO
       payer: {
         email: finalEmail
       },
-      // 2. O TRUQUE (Guardamos o email aqui também para garantir o retorno)
+      // 2. O CAMPO DE SEGURANÇA (Obrigatório para o código novo funcionar)
       external_reference: finalEmail, 
       
       payment_methods: {
