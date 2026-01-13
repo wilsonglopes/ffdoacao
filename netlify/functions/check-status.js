@@ -6,7 +6,7 @@ exports.handler = async function(event) {
     }
 
     try {
-        // Usa FETCH nativo (não precisa de require 'mercadopago')
+        // Consulta direta sem biblioteca externa
         const response = await fetch(`https://api.mercadopago.com/v1/payments/search?preference_id=${preferenceId}&status=approved`, {
             method: 'GET',
             headers: { 
@@ -16,7 +16,6 @@ exports.handler = async function(event) {
         
         const data = await response.json();
 
-        // Se achou pagamento aprovado, libera!
         if (data.results && data.results.length > 0) {
             return {
                 statusCode: 200,
@@ -31,7 +30,6 @@ exports.handler = async function(event) {
 
     } catch (error) {
         console.error('Erro check-status:', error);
-        // Retorna o erro para vermos no console se precisar
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
