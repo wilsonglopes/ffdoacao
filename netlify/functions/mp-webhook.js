@@ -1,6 +1,5 @@
 exports.handler = async function(event) {
     let paymentId = null;
-    console.log("[Webhook] Recebido! Verificando dados...");
 
     // 1. TENTA LER O ID
     try {
@@ -12,7 +11,7 @@ exports.handler = async function(event) {
             paymentId = event.queryStringParameters.id || event.queryStringParameters['data.id'];
         }
     } catch (e) {
-        console.log("[Webhook] Erro leitura:", e.message);
+        console.log("[Webhook] Erro leitura body:", e.message);
     }
 
     if (!paymentId) {
@@ -21,6 +20,7 @@ exports.handler = async function(event) {
 
     // 2. CONSULTA O MERCADO PAGO
     try {
+        console.log(`[Webhook] Consultando ID: ${paymentId}`);
         const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
             headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` }
         });
@@ -31,27 +31,35 @@ exports.handler = async function(event) {
         }
 
         const payment = await mpResponse.json();
-        console.log(`[Webhook] ID: ${paymentId} | Status: ${payment.status}`);
+        const status = payment.status;
+        console.log(`[Webhook] Status: ${status}`);
 
-        if (payment.status === 'approved') {
-            // --- AQUI ESTÁ A CORREÇÃO BLINDADA ---
-            // Tenta pegar do payer.email. Se falhar, pega do external_reference
-            let emailCliente = payment.payer?.email;
+        if (status === 'approved') {
+            // --- ESTRATÉGIA METADATA ---
+            // 1. Tenta Metadata (O Cofre)
+            // 2. Tenta Payer (O Padrão)
+            // 3. Tenta External Reference (O Backup)
+            let emailCliente = payment.metadata?.user_email;
+
+            if (!emailCliente) {
+                 console.log("[Webhook] Metadata vazio. Tentando payer.email...");
+                 emailCliente = payment.payer?.email;
+            }
             
-            if (!emailCliente || emailCliente === 'null') {
-                console.log("[Webhook] Email no payer vazio. Tentando external_reference...");
+            if (!emailCliente) {
+                console.log("[Webhook] Payer vazio. Tentando external_reference...");
                 emailCliente = payment.external_reference;
             }
 
-            console.log(`[Webhook] Email Final para envio: ${emailCliente}`);
+            console.log(`[Webhook] EMAIL RESGATADO: ${emailCliente}`);
 
-            // Se ainda assim não tiver email, aborta para não dar erro
-            if (!emailCliente || !emailCliente.includes('@')) {
-                console.error("[Webhook] ERRO CRÍTICO: Email não encontrado em lugar nenhum.");
-                return { statusCode: 200, body: 'No Email Found' };
+            // Validação final antes de enviar
+            if (!emailCliente || !emailCliente.includes('@') || emailCliente === 'email_nao_informado@loja.com') {
+                console.error("[Webhook] ERRO FATAL: Email inválido ou não encontrado.");
+                return { statusCode: 200, body: 'No valid email' };
             }
 
-            // Envia o E-mail
+            // Envia EmailJS
             const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -69,13 +77,13 @@ exports.handler = async function(event) {
             });
 
             if (emailRes.ok) {
-                console.log('[Webhook] SUCESSO! E-mail enviado.');
+                console.log('[Webhook] SUCESSO! E-mail disparado.');
             } else {
                 console.error('[Webhook] Falha no EmailJS:', await emailRes.text());
             }
         }
     } catch (error) {
-        console.error('[Webhook] Erro fatal:', error);
+        console.error('[Webhook] Erro Catch:', error);
     }
 
     return { statusCode: 200, body: 'OK' };
