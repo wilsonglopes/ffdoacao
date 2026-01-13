@@ -23,6 +23,7 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden z-10 relative border border-gray-100">
+        
         <div class="relative h-72 md:h-80 bg-gray-100 group">
             <img src="public/images/crucifixo.jpg" alt="Crucifixo em Feltro" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
@@ -34,13 +35,15 @@
             <div class="text-center mb-8">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800 leading-tight mb-2">Apostila Crucifixo de Jesus</h1>
                 <p class="text-stone-500 text-sm mb-4">Projeto completo com moldes e passo a passo</p>
+                
                 <div class="inline-block bg-purple-50 px-6 py-2 rounded-full border border-purple-100">
                     <p class="text-purple-700 text-4xl font-bold">R$ 6,97</p>
                 </div>
+
                 <div class="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-left flex items-start gap-3">
                     <span class="text-xl">📧</span>
                     <p class="text-gray-600 text-sm leading-relaxed">
-                        <strong>Atenção:</strong> O arquivo PDF será enviado automaticamente para o <strong>e-mail</strong> que você cadastrar na próxima etapa.
+                        <strong>Atenção:</strong> O arquivo PDF será enviado automaticamente para o <strong>e-mail</strong> que você cadastrar na tela de pagamento.
                     </p>
                 </div>
             </div>
@@ -97,7 +100,7 @@
                     
                     <div id="modal-loader" class="absolute inset-0 flex flex-col items-center justify-center z-20 bg-white">
                         <div class="loader mb-4"></div>
-                        <p class="text-gray-600 font-medium">Conectando ao gateway de pagamento...</p>
+                        <p class="text-gray-600 font-medium animate-pulse">Conectando ao gateway de pagamento...</p>
                     </div>
 
                     <div id="stripe-checkout" class="hidden h-full w-full overflow-y-auto p-4"></div>
@@ -112,6 +115,9 @@
     <script>
         const PRODUCT_PRICE = 6.97; 
         let currentMethod = 'br';
+        let pollingInterval = null; // Variável para controlar a verificação automática
+
+        // Chave do Stripe
         const stripe = Stripe('pk_live_51SZGWH2Yql6uVgx9IxgMYgwkkE5nfQtrwjJxFosvO9VImC4ph66AkTcxzffPhKKyaUBzVHLJKonFEOCNMNByaqfq00rkKnjZJU');
 
         function selectMethod(method) {
@@ -133,6 +139,29 @@
             document.getElementById('payment-modal').classList.add('hidden');
             document.getElementById('mp-iframe').src = "";
             document.getElementById('stripe-checkout').innerHTML = '';
+            
+            // Para de verificar se o usuário fechar a janela
+            if (pollingInterval) clearInterval(pollingInterval);
+        }
+
+        // --- FUNÇÃO PARA VIGIAR O PAGAMENTO (POLLING) ---
+        function startPolling(preferenceId) {
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            // Verifica a cada 3 segundos
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/.netlify/functions/check-status?preferenceId=${preferenceId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'approved') {
+                        clearInterval(pollingInterval); // Para de verificar
+                        window.location.href = '/obrigado.html'; // Redireciona!
+                    }
+                } catch (error) {
+                    console.error("Erro na verificação:", error);
+                }
+            }, 3000);
         }
 
         document.getElementById('submit-btn').addEventListener('click', async () => {
@@ -140,7 +169,7 @@
 
             try {
                 if (currentMethod === 'br') {
-                    // Mercado Pago
+                    // --- Mercado Pago ---
                     const response = await fetch('/.netlify/functions/create-mp-preference', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -155,12 +184,19 @@
                             document.getElementById('modal-loader').classList.add('hidden');
                             iframe.classList.remove('hidden');
                         };
+
+                        // Se o backend retornou o ID, começamos a vigiar o pagamento
+                        if (data.id) {
+                            console.log("Iniciando verificação do pagamento ID:", data.id);
+                            startPolling(data.id);
+                        }
+
                     } else {
                         throw new Error('Link de pagamento não gerado.');
                     }
 
                 } else {
-                    // Stripe
+                    // --- Stripe ---
                     const response = await fetch('/.netlify/functions/create-stripe-checkout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
