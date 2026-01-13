@@ -9,26 +9,31 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    // Definimos a URL base (Local ou Produção)
     const baseUrl = process.env.URL || "http://localhost:8888";
-    
-    // PREÇO FIXO DO PRODUTO (Para segurança)
     const PRODUCT_PRICE = 6.97;
 
-    // Dados da preferência
+    // --- MUDANÇA 1: Ler o e-mail que veio do Frontend ---
+    // O site manda: { amount: 6.97, email: "cliente@gmail.com" }
+    const { email } = JSON.parse(event.body || '{}');
+
     const preferenceData = {
       items: [
         {
-          title: 'Apostila Digital - Crucifixo em Feltro', // Nome correto do produto
+          title: 'Apostila Digital - Crucifixo em Feltro',
           description: 'Arquivo PDF enviado por e-mail',
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: PRODUCT_PRICE // Valor fixo
+          unit_price: PRODUCT_PRICE
         }
       ],
+      // --- MUDANÇA 2: Enviar o e-mail para o Mercado Pago ---
+      // Isso preenche o campo automaticamente e garante o envio do produto
+      payer: {
+        email: email || 'email_nao_informado@loja.com'
+      },
       payment_methods: {
         excluded_payment_types: [],
-        installments: 1 // Pagamento à vista (comum para valores baixos)
+        installments: 1
       },
       back_urls: {
         success: `${baseUrl}/obrigado.html`,
@@ -36,9 +41,8 @@ exports.handler = async function(event, context) {
         pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      // binary_mode true evita pagamentos pendentes (bom para entrega digital)
       binary_mode: true,
-      statement_descriptor: "FELTROFACIL" // Nome na fatura do cartão
+      statement_descriptor: "FELTROFACIL"
     };
 
     // Chamada nativa (Fetch) para a API do Mercado Pago
@@ -63,7 +67,7 @@ exports.handler = async function(event, context) {
       headers,
       body: JSON.stringify({ 
         init_point: data.init_point,
-        id: data.id  // <--- ADICIONE ESTA LINHA (Obrigatório para o Pix automático funcionar)
+        id: data.id 
       }),
     };
 
@@ -76,4 +80,3 @@ exports.handler = async function(event, context) {
     };
   }
 };
-
