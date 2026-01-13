@@ -62,8 +62,8 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        // Retornamos o init_point para abrir o Checkout
-        init_point: data.init_point 
+        init_point: data.init_point,
+        id: data.id  // <--- ADICIONE ESTA LINHA (Obrigatório para o Pix automático funcionar)
       }),
     };
 
@@ -76,3 +76,4 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
