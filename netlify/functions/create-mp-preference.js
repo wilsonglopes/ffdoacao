@@ -1,20 +1,28 @@
+const mercadopago = require('mercadopago');
+
 exports.handler = async function(event, context) {
+  // Configura os Cabeçalhos para evitar erro de CORS (Aquele erro vermelho do console)
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: 'Method Not Allowed' };
+  // Responde rápido se for apenas uma verificação do navegador
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
   }
 
-  try {
-    const baseUrl = process.env.URL || "http://localhost:8888";
-    const PRODUCT_PRICE = 6.97;
+  // Configura o Token do Mercado Pago
+  mercadopago.configurations.setAccessToken(process.env.MP_ACCESS_TOKEN);
 
-    // --- MUDANÇA 1: Ler o e-mail que veio do Frontend ---
-    // O site manda: { amount: 6.97, email: "cliente@gmail.com" }
-    const { email } = JSON.parse(event.body || '{}');
+  try {
+    // 1. AQUI É O SEGREDO: Recebe o e-mail que veio do site
+    const { amount, email } = JSON.parse(event.body || '{}');
+
+    // Se o preço não vier, usa o padrão
+    const finalPrice = amount ? parseFloat(amount) : 6.97;
+    const finalEmail = email || 'email_nao_informado@loja.com';
 
     const preferenceData = {
       items: [
@@ -23,60 +31,45 @@ exports.handler = async function(event, context) {
           description: 'Arquivo PDF enviado por e-mail',
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: PRODUCT_PRICE
+          unit_price: finalPrice
         }
       ],
-      // --- MUDANÇA 2: Enviar o e-mail para o Mercado Pago ---
-      // Isso preenche o campo automaticamente e garante o envio do produto
+      // 2. AQUI ENVIAMOS O E-MAIL PARA O MERCADO PAGO
       payer: {
-        email: email || 'email_nao_informado@loja.com'
+        email: finalEmail
       },
       payment_methods: {
         excluded_payment_types: [],
         installments: 1
       },
       back_urls: {
-        success: `${baseUrl}/obrigado.html`,
-        failure: `${baseUrl}/index.html`,
-        pending: `${baseUrl}/index.html`
+        success: "https://doe.feltrofacil.com.br/obrigado.html",
+        failure: "https://doe.feltrofacil.com.br/",
+        pending: "https://doe.feltrofacil.com.br/"
       },
       auto_return: "approved",
       binary_mode: true,
       statement_descriptor: "FELTROFACIL"
     };
 
-    // Chamada nativa (Fetch) para a API do Mercado Pago
-    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(preferenceData)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Erro API MP:', data);
-      throw new Error(JSON.stringify(data));
-    }
+    // Cria a preferência
+    const response = await mercadopago.preferences.create(preferenceData);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        init_point: data.init_point,
-        id: data.id 
+        init_point: response.body.init_point,
+        id: response.body.id 
       }),
     };
 
   } catch (error) {
-    console.error('Erro Função:', error);
+    console.error('Erro MP:', error);
     return {
       statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Erro ao criar preferência MP' }),
+      headers, // Importante retornar headers mesmo no erro
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
