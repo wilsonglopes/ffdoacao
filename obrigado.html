@@ -3,68 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Obrigado! - Feltro Fácil</title>
+    <title>Obrigado pela Compra! - Feltro Fácil</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <style>
         body { font-family: 'Quicksand', sans-serif; background-color: #FFF0F5; }
-        .text-brand-purple { color: #800080; }
         .bg-brand-purple { background-color: #800080; }
         .bg-brand-purple:hover { background-color: #6B21A8; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center">
+    <div class="max-w-lg w-full bg-white rounded-2xl shadow-xl p-8 text-center border-t-8 border-purple-800">
         
-        <div class="mb-6 flex justify-center">
-            <div class="rounded-full bg-green-100 p-4">
-                <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Pagamento Confirmado!</h1>
+        <p class="text-gray-600 mb-8">Sua apostila já está liberada para download.</p>
+
+        <div class="bg-purple-50 border border-purple-100 rounded-xl p-6 mb-8">
+            <p class="text-sm text-purple-800 font-bold mb-4 uppercase tracking-wide">Link Exclusivo</p>
+            
+            <a href="https://lrbykdpwzixmgganirvo.supabase.co/storage/v1/object/public/produtos/crucifixo_feltro.pdf" 
+               target="_blank" 
+               class="block w-full bg-brand-purple hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg shadow-md transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
-            </div>
+                BAIXAR APOSTILA (PDF)
+            </a>
+            
+            <p class="text-xs text-gray-500 mt-3">Tamanho do arquivo: PDF de Alta Qualidade</p>
         </div>
 
-        <img src="/images/logo.png" alt="Feltro Fácil" class="h-10 mx-auto mb-6 object-contain">
-
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Muito Obrigado!</h1>
-        <p class="text-gray-500 mb-8">Sua contribuição faz toda a diferença para continuarmos criando.</p>
-
-        <div class="bg-purple-50 rounded-xl p-6 mb-8 border border-purple-100">
-            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Valor doado</p>
-            <p id="donation-amount" class="text-4xl font-bold text-brand-purple mt-2">...</p>
+        <div class="border-t border-gray-100 pt-6">
+            <p class="text-sm text-gray-600">
+                📩 <strong>Importante:</strong> Também enviamos uma cópia para o seu e-mail de compra. 
+                <br><span class="text-xs text-gray-400">(Verifique também na caixa de Spam/Promoções)</span>
+            </p>
         </div>
 
-        <a href="https://feltrofacil.com.br" class="block w-full bg-brand-purple text-white font-bold py-4 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
-            Voltar para o Blog
-        </a>
+        <div class="mt-8">
+            <a href="/index.html" class="text-purple-600 hover:text-purple-800 text-sm font-semibold hover:underline">
+                Voltar para a página inicial
+            </a>
+        </div>
     </div>
 
     <script>
-        // 1. Efeito de Confete ao carregar
-        window.addEventListener('load', () => {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#800080', '#FF1493', '#FFD700'] // Roxo, Rosa e Dourado
-            });
-        });
-
-        // 2. Pegar o valor da URL (ex: obrigado.html?amount=50)
-        const params = new URLSearchParams(window.location.search);
-        let amount = params.get('amount');
-
-        // Formatação de moeda
-        if (amount) {
-            // Se vier do Stripe ou MP, garantimos que seja número
-            amount = parseFloat(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('donation-amount').innerText = amount;
-        } else {
-            // Caso acesse sem parametro
-            document.getElementById('donation-amount').innerText = "R$ --,--";
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id'); // Stripe
+        const paymentId = urlParams.get('collection_id'); // Mercado Pago (as vezes vem como collection_id ou payment_id)
+        
+        if(sessionId || paymentId) {
+            console.log("Transação identificada:", sessionId || paymentId);
         }
     </script>
 </body>
