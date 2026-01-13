@@ -9,34 +9,39 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { amount } = JSON.parse(event.body);
+    // Definimos a URL base (Local ou Produção)
     const baseUrl = process.env.URL || "http://localhost:8888";
+    
+    // PREÇO FIXO DO PRODUTO (Para segurança)
+    const PRODUCT_PRICE = 6.97;
 
     // Dados da preferência
     const preferenceData = {
       items: [
         {
-          title: 'Contribuição Feltro Fácil',
+          title: 'Apostila Digital - Crucifixo em Feltro', // Nome correto do produto
+          description: 'Arquivo PDF enviado por e-mail',
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: parseFloat(amount)
+          unit_price: PRODUCT_PRICE // Valor fixo
         }
       ],
       payment_methods: {
         excluded_payment_types: [],
-        installments: 1
+        installments: 1 // Pagamento à vista (comum para valores baixos)
       },
       back_urls: {
-        success: `${baseUrl}/obrigado.html?amount=${amount}`,
+        success: `${baseUrl}/obrigado.html`,
         failure: `${baseUrl}/index.html`,
         pending: `${baseUrl}/index.html`
       },
       auto_return: "approved",
-      // binary_mode true ajuda a evitar pagamentos pendentes
-      binary_mode: true 
+      // binary_mode true evita pagamentos pendentes (bom para entrega digital)
+      binary_mode: true,
+      statement_descriptor: "FELTROFACIL" // Nome na fatura do cartão
     };
 
-    // Chamada nativa (Fetch) - Leve e à prova de falhas de deploy
+    // Chamada nativa (Fetch) para a API do Mercado Pago
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
@@ -57,7 +62,7 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        // Retornamos o init_point para o Iframe
+        // Retornamos o init_point para abrir o Checkout
         init_point: data.init_point 
       }),
     };
