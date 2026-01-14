@@ -31,7 +31,7 @@ exports.handler = async function(event, context) {
           description: 'Arquivo PDF enviado por e-mail',
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: amount ? parseFloat(amount) : 4.97
+          unit_price: amount ? parseFloat(amount) : 4.99
         }
       ],
       payer: {
@@ -77,4 +77,5 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
 
